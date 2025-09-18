@@ -5,6 +5,7 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
     <application
         android:icon="@mipmap/app_icon"
@@ -12,7 +13,7 @@
         android:theme="@android:style/Theme.Material.NoActionBar">
 
         <activity
-            android:name=".LauncherActivity"
+            android:name=".ui.LauncherActivity"
             android:clearTaskOnLaunch="true"
             android:configChanges="assetsPaths|orientation|density|fontScale|layoutDirection|locale|screenLayout|screenSize"
             android:excludeFromRecents="true"

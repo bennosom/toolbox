@@ -1,4 +1,4 @@
-package io.engst.launcher
+package io.engst.launcher.ui
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

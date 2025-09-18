@@ -1,4 +1,4 @@
-package io.engst.launcher
+package io.engst.launcher.ui
 
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
