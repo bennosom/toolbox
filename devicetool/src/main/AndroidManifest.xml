@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
+
+    <application
+        android:icon="@mipmap/app_icon"
+        android:label="DeviceTool"
+        android:theme="@android:style/Theme.Material.NoActionBar">
+
+        <activity
+            android:name=".DeviceToolActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+        <activity
+            android:name=".DeviceToolInternalActivity"
+            android:configChanges="assetsPaths|orientation|density|fontScale|layoutDirection|locale|screenLayout|screenSize"
+            android:exported="false">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+    </application>
+
+</manifest>
