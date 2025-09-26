@@ -8,7 +8,6 @@ import android.content.pm.ShortcutInfo
 import android.provider.Settings
 import android.view.View
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -33,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
@@ -52,9 +52,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -63,7 +67,10 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -71,6 +78,10 @@ import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.consumeDownChange
 import androidx.compose.ui.input.pointer.consumePositionChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
@@ -79,14 +90,15 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import io.engst.core.apps.launchIntent
-import io.engst.core.logDebug
 import io.engst.core.wallpaper.setColorWallpaper
 import io.engst.launcher.model.App
+import io.engst.launcher.model.Cell
 import io.engst.launcher.model.Grid
 import io.engst.launcher.model.GridSpec
 import io.engst.launcher.ui.shared.AppIcon
 import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.rememberScreenInfo
+import kotlinx.coroutines.launch
 
 @OptIn(
    ExperimentalFoundationApi::class,
@@ -105,6 +117,7 @@ fun AppGrid(
    onGridChanged: (GridSpec) -> Unit = {},
    onResetDefaults: () -> Unit = {},
    onSetDefaultLauncher: () -> Unit = {},
+   onGridUpdate: (Grid) -> Unit = {},
 ) {
    if (savedState == null || savedState.grid.isEmpty()) {
       Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -122,7 +135,7 @@ fun AppGrid(
 
    var dragMode by remember { mutableStateOf(false) }
    var workingState by remember(savedState) { mutableStateOf(savedState) }
-   val state = if (dragMode) workingState else savedState
+   val state by rememberUpdatedState(workingState)
    val uiState =
       if (dragMode) state.copy(grid = state.grid + state.grid.last().mapValues { null }) else state
 
@@ -147,51 +160,10 @@ fun AppGrid(
                )
             }
    ) {
-      val dragAndDropTarget = remember {
-         object : DragAndDropTarget {
-            override fun onStarted(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onStarted: $event" }
-               dragMode = true
-            }
-
-            override fun onChanged(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onChanged: $event" }
-               super.onChanged(event)
-            }
-
-            override fun onEntered(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onEntered: $event" }
-               super.onEntered(event)
-            }
-
-            override fun onExited(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onExited: $event" }
-               super.onExited(event)
-            }
-
-            override fun onMoved(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onMoved: $event" }
-               super.onMoved(event)
-            }
-
-            override fun onDrop(event: DragAndDropEvent): Boolean {
-               logDebug { "DragAndDropTarget.onDrop: $event" }
-               dragMode = false
-               draggingId = null
-               return true
-            }
-
-            override fun onEnded(event: DragAndDropEvent) {
-               logDebug { "DragAndDropTarget.onEnded: $event" }
-               dragMode = false
-               draggingId = null
-            }
-         }
-      }
-
+      val pagerState = rememberPagerState { uiState.grid.size }
+      val scope = rememberCoroutineScope()
       Column(Modifier.fillMaxSize()) {
          // app grid
-         val pagerState = rememberPagerState { uiState.grid.size }
          val iconSize = 60.dp
          val spacing = 12.dp
          val spacingPx = with(density) { spacing.roundToPx() }
@@ -211,12 +183,15 @@ fun AppGrid(
             snapPosition = SnapPosition.Center,
             modifier = Modifier
                .weight(1f)
-               .fillMaxWidth()
-               .border(1.dp, Color.Magenta),
+               .fillMaxWidth(),
          ) { pageIndex ->
             val page = uiState.grid[pageIndex]
+            val cellOrder = remember(page) { page.keys.toList() }
+            val lazyGridState = remember(pageIndex) { LazyGridState() }
+            val gridCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
             LazyVerticalGrid(
+               state = lazyGridState,
                columns = GridCells.Fixed(uiState.spec.cols),
                userScrollEnabled = false,
                verticalArrangement = Arrangement.spacedBy(spacing),
@@ -224,14 +199,58 @@ fun AppGrid(
                modifier =
                   Modifier
                      .fillMaxSize()
-                     .border(1.dp, Color.Yellow)
-                     .padding(horizontal = spacing),
+                     .padding(horizontal = spacing)
+                     .onPlaced { coordinates -> gridCoordinates.value = coordinates }
+                     .dragAndDropTarget(
+                        shouldStartDragAndDrop = { event ->
+                           event.mimeTypes().contains("text/vnd.android.intent")
+                        },
+                        target =
+                           object : DragAndDropTarget {
+                              override fun onStarted(event: DragAndDropEvent) {
+                                 dragMode = true
+                              }
+
+                              override fun onMoved(event: DragAndDropEvent) {
+                                 val appId = draggingId ?: return
+                                 val coordinates = gridCoordinates.value ?: return
+                                 val localOffset = coordinates.localOffsetOf(event) ?: return
+                                 val targetCell =
+                                    lazyGridState.findCellAt(localOffset, cellOrder) ?: return
+                                 val updated =
+                                    workingState.applyDrag(
+                                       appId,
+                                       DragDestination.Grid(pageIndex, targetCell),
+                                    )
+                                 if (updated != workingState) {
+                                    workingState = updated
+                                 }
+                              }
+
+                              override fun onDrop(event: DragAndDropEvent): Boolean {
+                                 dragMode = false
+                                 draggingId = null
+                                 onGridUpdate(workingState)
+                                 return true
+                              }
+
+                              override fun onEnded(event: DragAndDropEvent) {
+                                 dragMode = false
+                                 draggingId = null
+                              }
+                           },
+                     ),
             ) {
                page.forEach { (cell, app) ->
                   item("page$pageIndex-col${cell.col}-row${cell.row}") {
                      val itemModifier = Modifier.fillMaxSize()
                      if (app == null) {
-                        Spacer(itemModifier)
+                        Box(
+                           modifier =
+                              itemModifier
+                                 .clip(MaterialTheme.shapes.small)
+                                 .animateItem()
+                        ) {}
                      } else {
                         val dragTransferData =
                            remember(app) {
@@ -310,15 +329,12 @@ fun AppGrid(
                                           } finally {
                                              suppressGridMenu = false
                                              showGridMenu = false
+                                             scope.launch {
+                                                pagerState.animateScrollToPage(pagerState.currentPage)
+                                             }
                                           }
                                        }
                                     },
-                                 )
-                                 .dragAndDropTarget(
-                                    shouldStartDragAndDrop = { event ->
-                                       event.mimeTypes().contains("text/vnd.android.intent")
-                                    },
-                                    target = dragAndDropTarget,
                                  )
                                  .combinedClickable(
                                     interactionSource = remember { MutableInteractionSource() },
@@ -368,12 +384,66 @@ fun AppGrid(
 
          Spacer(Modifier.size(spacing))
 
+         val quickBarCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+         val quickBarItemBounds = remember { mutableStateMapOf<String, Rect>() }
+         SideEffect {
+            val ids = uiState.bar.map { it.id }.toSet()
+            quickBarItemBounds.keys.retainAll(ids)
+         }
+
          // quick access bar
          Row(
-            modifier = Modifier
-               .fillMaxWidth()
-               .height(96.dp)
-               .border(1.dp, Color.Cyan),
+            modifier =
+               Modifier
+                  .fillMaxWidth()
+                  .height(96.dp)
+                  .onPlaced { coordinates -> quickBarCoordinates.value = coordinates }
+                  .dragAndDropTarget(
+                     shouldStartDragAndDrop = { event ->
+                        event.mimeTypes().contains("text/vnd.android.intent")
+                     },
+                     target =
+                        object : DragAndDropTarget {
+                           override fun onStarted(event: DragAndDropEvent) {
+                              dragMode = true
+                           }
+
+                           override fun onMoved(event: DragAndDropEvent) {
+                              val appId = draggingId ?: return
+                              val rowCoordinates = quickBarCoordinates.value ?: return
+                              val localOffset = rowCoordinates.localOffsetOf(event) ?: return
+                              val rowHeight = rowCoordinates.size.height.toFloat()
+                              if (localOffset.y !in 0f..rowHeight) return
+                              val targetIndex =
+                                 determineQuickBarTargetIndex(
+                                    uiState.bar,
+                                    quickBarItemBounds,
+                                    localOffset,
+                                 )
+                                    ?: return
+                              val updated =
+                                 workingState.applyDrag(
+                                    appId,
+                                    DragDestination.QuickBar(targetIndex),
+                                 )
+                              if (updated != workingState) {
+                                 workingState = updated
+                              }
+                           }
+
+                           override fun onDrop(event: DragAndDropEvent): Boolean {
+                              dragMode = false
+                              draggingId = null
+                              onGridUpdate(workingState)
+                              return true
+                           }
+
+                           override fun onEnded(event: DragAndDropEvent) {
+                              dragMode = false
+                              draggingId = null
+                           }
+                        },
+                  ),
             horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
          ) {
@@ -396,6 +466,9 @@ fun AppGrid(
                   modifier =
                      Modifier
                         .clip(MaterialTheme.shapes.medium)
+                        .onPlaced { coordinates ->
+                           quickBarItemBounds[app.id] = coordinates.boundsInParent()
+                        }
                         .dragAndDropSource(
                            drawDragDecoration = {
                               val shadowSize = with(density) { iconSize.roundToPx() }
@@ -456,12 +529,6 @@ fun AppGrid(
                               }
                            },
                         )
-                        .dragAndDropTarget(
-                           shouldStartDragAndDrop = { event ->
-                              event.mimeTypes().contains("text/vnd.android.intent")
-                           },
-                           target = dragAndDropTarget,
-                        )
                         .combinedClickable(
                            interactionSource = remember { MutableInteractionSource() },
                            indication = null,
@@ -474,7 +541,7 @@ fun AppGrid(
                               }
                            },
                            onLongClick = null,
-                        )
+                        ),
                ) {
                   if (draggingId != app.id) {
                      AppIcon(app, size = iconSize)
@@ -579,4 +646,156 @@ fun AppGrid(
          )
       }
    }
+}
+
+private fun LayoutCoordinates.localOffsetOf(event: DragAndDropEvent): Offset? {
+   if (!isAttached) return null
+   val rootCoordinates = findRootCoordinates()
+   if (!rootCoordinates.isAttached) return null
+   val dragEvent = event.toAndroidDragEvent()
+   val rootOffset = Offset(dragEvent.x, dragEvent.y)
+   return localPositionOf(rootCoordinates, rootOffset)
+}
+
+private fun LazyGridState.findCellAt(localOffset: Offset, cells: List<Cell>): Cell? {
+   val x = localOffset.x.toInt()
+   val y = localOffset.y.toInt()
+   if (x < 0 || y < 0) return null
+   val itemInfo =
+      layoutInfo.visibleItemsInfo.firstOrNull { info ->
+         val withinX = x in info.offset.x until (info.offset.x + info.size.width)
+         val withinY = y in info.offset.y until (info.offset.y + info.size.height)
+         withinX && withinY
+      }
+         ?: return null
+   return cells.getOrNull(itemInfo.index)
+}
+
+private fun determineQuickBarTargetIndex(
+   bar: List<App>,
+   bounds: Map<String, Rect>,
+   localOffset: Offset,
+): Int? {
+   if (bar.isEmpty()) return 0
+   var lastRect: Rect? = null
+   bar.forEachIndexed { index, app ->
+      val rect = bounds[app.id] ?: return null
+      if (localOffset.x < rect.centerX()) {
+         return index
+      }
+      lastRect = rect
+   }
+   return if (lastRect == null) null else bar.size
+}
+
+private fun Rect.centerX(): Float = (left + right) / 2f
+
+private sealed interface DragDestination {
+   data class Grid(val pageIndex: Int, val cell: Cell) : DragDestination
+
+   data class QuickBar(val index: Int) : DragDestination
+}
+
+private sealed interface DragLocation {
+   data class Grid(val pageIndex: Int, val cell: Cell) : DragLocation
+
+   data class QuickBar(val index: Int) : DragLocation
+}
+
+private fun Grid.applyDrag(appId: String, destination: DragDestination): Grid {
+   val origin = findLocation(appId) ?: return this
+   return when (destination) {
+      is DragDestination.Grid ->
+         when (origin) {
+            is DragLocation.Grid -> moveGridToGrid(origin, destination)
+            is DragLocation.QuickBar -> moveBarToGrid(origin, destination)
+         }
+
+      is DragDestination.QuickBar ->
+         when (origin) {
+            is DragLocation.Grid -> moveGridToBar(origin, destination)
+            is DragLocation.QuickBar -> moveBarToBar(origin, destination)
+         }
+   }
+}
+
+private fun Grid.findLocation(appId: String): DragLocation? {
+   grid.forEachIndexed { pageIndex, page ->
+      page.forEach { (cell, app) ->
+         if (app?.id == appId) {
+            return DragLocation.Grid(pageIndex, cell)
+         }
+      }
+   }
+   bar.forEachIndexed { index, app ->
+      if (app.id == appId) {
+         return DragLocation.QuickBar(index)
+      }
+   }
+   return null
+}
+
+private fun Grid.moveGridToGrid(
+   origin: DragLocation.Grid,
+   destination: DragDestination.Grid
+): Grid {
+   if (origin.pageIndex == destination.pageIndex && origin.cell == destination.cell) return this
+   val pages = grid.map { LinkedHashMap(it) }.toMutableList()
+   val sourcePage = pages.getOrNull(origin.pageIndex) ?: return this
+   val destinationPage = pages.getOrNull(destination.pageIndex) ?: return this
+   val sourceApp = sourcePage[origin.cell] ?: return this
+   val destinationApp = destinationPage[destination.cell]
+   if (destinationApp === sourceApp) return this
+   sourcePage[origin.cell] = destinationApp
+   destinationPage[destination.cell] = sourceApp
+   return copy(grid = pages.map { it.toMap() })
+}
+
+private fun Grid.moveBarToGrid(
+   origin: DragLocation.QuickBar,
+   destination: DragDestination.Grid
+): Grid {
+   if (origin.index !in bar.indices) return this
+   val pages = grid.map { LinkedHashMap(it) }.toMutableList()
+   val destinationPage = pages.getOrNull(destination.pageIndex) ?: return this
+   val barList = bar.toMutableList()
+   val sourceApp = barList.removeAt(origin.index)
+   val destinationApp = destinationPage[destination.cell]
+   destinationPage[destination.cell] = sourceApp
+   if (destinationApp != null) {
+      barList.add(origin.index.coerceIn(0, barList.size), destinationApp)
+   }
+   return copy(grid = pages.map { it.toMap() }, bar = barList)
+}
+
+private fun Grid.moveGridToBar(
+   origin: DragLocation.Grid,
+   destination: DragDestination.QuickBar
+): Grid {
+   val pages = grid.map { LinkedHashMap(it) }.toMutableList()
+   val sourcePage = pages.getOrNull(origin.pageIndex) ?: return this
+   val sourceApp = sourcePage[origin.cell] ?: return this
+   val barList = bar.toMutableList()
+   val insertIndex = destination.index.coerceIn(0, barList.size)
+   val displacedApp = if (insertIndex < barList.size) barList[insertIndex] else null
+   if (insertIndex < barList.size) {
+      barList[insertIndex] = sourceApp
+   } else {
+      barList.add(sourceApp)
+   }
+   sourcePage[origin.cell] = displacedApp
+   return copy(grid = pages.map { it.toMap() }, bar = barList)
+}
+
+private fun Grid.moveBarToBar(
+   origin: DragLocation.QuickBar,
+   destination: DragDestination.QuickBar
+): Grid {
+   if (origin.index == destination.index) return this
+   if (origin.index !in bar.indices) return this
+   val barList = bar.toMutableList()
+   val item = barList.removeAt(origin.index)
+   val targetIndex = destination.index.coerceIn(0, barList.size)
+   barList.add(targetIndex, item)
+   return copy(bar = barList)
 }
