@@ -558,7 +558,7 @@ fun AppGrid(
                   }
                }
             }
-      }
+         }
       }
 
       // grid menu

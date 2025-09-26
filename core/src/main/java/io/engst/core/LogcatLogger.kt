@@ -19,14 +19,14 @@ class LogcatLogger(private val tag: String, private val prefix: String) : Loggin
    }
 
    override fun logInfo(vararg hints: String, message: () -> Any?) {
-      Log.d(tag, formatPrefix(prefix, *hints) + message())
+      Log.i(tag, formatPrefix(prefix, *hints) + message())
    }
 
    override fun logWarn(vararg hints: String, message: () -> Any?) {
-      Log.d(tag, formatPrefix(prefix, *hints) + message())
+      Log.w(tag, formatPrefix(prefix, *hints) + message())
    }
 
    override fun logError(error: Throwable?, vararg hints: String, message: () -> Any?) {
-      Log.d(tag, formatPrefix(prefix, *hints) + message())
+      Log.e(tag, formatPrefix(prefix, *hints) + message())
    }
 }

@@ -23,7 +23,7 @@ class LauncherApp : Application(), Logging by scopedLogger("LauncherApp") {
     lastConfiguration = resources.configuration.toString()
     startKoin {
       androidContext(this@LauncherApp)
-      modules(rootModule)
+       modules(rootModule)
     }
   }
 

@@ -23,3 +23,4 @@ rootProject.name = "toolbox"
 include(":devicetool")
 include(":core")
 include(":launcher")
+include(":cleo")

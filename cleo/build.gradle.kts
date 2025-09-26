@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
    alias(libs.plugins.android.application)
    alias(libs.plugins.kotlin.android)
@@ -5,17 +7,15 @@ plugins {
 }
 
 android {
-   namespace = "io.engst.launcher"
+   namespace = "io.engst.cleo"
    compileSdk = 36
 
    defaultConfig {
-      applicationId = "io.engst.launcher"
-    minSdk = 31
-    targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
-
-      testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+      applicationId = "io.engst.cleo"
+      minSdk = 31
+      targetSdk = 36
+      versionCode = 1
+      versionName = "1.0"
    }
 
    buildTypes {
@@ -31,17 +31,16 @@ android {
       sourceCompatibility = JavaVersion.VERSION_11
       targetCompatibility = JavaVersion.VERSION_11
    }
-   kotlinOptions {
-      jvmTarget = "11"
-   }
-   buildFeatures {
-      compose = true
-   }
+   kotlin { compilerOptions { jvmTarget = JvmTarget.JVM_11 } }
+   buildFeatures { compose = true }
 }
 
 dependencies {
    implementation(project(":core"))
 
+   implementation(libs.tasks.genai)
+   implementation(libs.okhttp)
+   implementation(libs.kotlinx.coroutines.android)
    implementation(libs.androidx.core.ktx)
    implementation(libs.androidx.lifecycle.runtime.ktx)
    implementation(libs.androidx.activity.compose)
@@ -50,16 +49,6 @@ dependencies {
    implementation(libs.androidx.compose.ui.graphics)
    implementation(libs.androidx.ui.tooling.preview)
    implementation(libs.androidx.compose.material3)
-   implementation(libs.androidx.compose.adaptive)
-   implementation(libs.androidx.compose.foundation)
    implementation(libs.androidx.compose.material.iconsExtended)
-   implementation(libs.koin.android)
-
-   testImplementation(libs.junit)
-   androidTestImplementation(libs.androidx.junit)
-   androidTestImplementation(libs.androidx.espresso.core)
-   androidTestImplementation(platform(libs.androidx.compose.bom))
-   androidTestImplementation(libs.androidx.compose.ui.test.junit4)
    debugImplementation(libs.androidx.ui.tooling)
-   debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

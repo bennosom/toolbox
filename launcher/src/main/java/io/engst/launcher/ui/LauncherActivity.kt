@@ -53,14 +53,14 @@ import org.koin.android.ext.android.inject
 
 class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherActivity") {
 
-  private val isDefaultHomeState = mutableStateOf(false)
+   private val isDefaultHomeState = mutableStateOf(false)
 
   @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
   override fun onCreate(savedInstanceState: Bundle?) {
     logDebug {
       "onCreate: $this rootTask=$isTaskRoot task=$taskId intent=$intent display=${display.displayId}"
     }
-    super.onCreate(savedInstanceState)
+     super.onCreate(savedInstanceState)
 
      // Show the system wallpaper behind our window
     window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
@@ -79,8 +79,8 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                 if (darkMode) dynamicDarkColorScheme(context)
                 else dynamicLightColorScheme(context)
           ) {
-          Box(modifier = Modifier.fillMaxSize()) {
-             val repository: AppsRepository by inject()
+             Box(modifier = Modifier.fillMaxSize()) {
+                val repository: AppsRepository by inject()
 
              var showAppManager by remember { mutableStateOf(false) }
              if (showAppManager) {
@@ -116,33 +116,33 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                 )
              }
 
-             val scope = rememberCoroutineScope()
-             val snackbarHostState = remember { SnackbarHostState() }
-             LaunchedEffect(isDefaultHomeState.value) {
-                if (!isDefaultHomeState.value) {
-                   scope.launch {
-                      val result =
-                         snackbarHostState.showSnackbar(
-                            message = "Set as default Launcher app",
-                            actionLabel = "Show Settings",
-                            duration = SnackbarDuration.Short,
-                         )
-                      if (result == SnackbarResult.ActionPerformed) {
-                         context.launchDefaultAppSettings()
+                val scope = rememberCoroutineScope()
+                val snackbarHostState = remember { SnackbarHostState() }
+                LaunchedEffect(isDefaultHomeState.value) {
+                   if (!isDefaultHomeState.value) {
+                      scope.launch {
+                         val result =
+                            snackbarHostState.showSnackbar(
+                               message = "Set as default Launcher app",
+                               actionLabel = "Show Settings",
+                               duration = SnackbarDuration.Short,
+                            )
+                         if (result == SnackbarResult.ActionPerformed) {
+                            context.launchDefaultAppSettings()
+                         }
                       }
                    }
                 }
-             }
 
-             Box(
-                modifier = Modifier
-                   .fillMaxSize()
-                   .safeContentPadding(),
-                contentAlignment = Alignment.TopCenter,
-             ) {
-                SnackbarHost(hostState = snackbarHostState)
+                Box(
+                   modifier = Modifier
+                      .fillMaxSize()
+                      .safeContentPadding(),
+                   contentAlignment = Alignment.TopCenter,
+                ) {
+                   SnackbarHost(hostState = snackbarHostState)
+                }
              }
-          }
           }
        }
     }

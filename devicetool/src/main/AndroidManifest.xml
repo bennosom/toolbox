@@ -6,12 +6,12 @@
 
     <application
         android:icon="@mipmap/app_icon"
-        android:label="DeviceTool"
         android:theme="@android:style/Theme.Material.NoActionBar">
-
         <activity
-            android:name=".DeviceToolActivity"
-            android:exported="true">
+            android:name=".MainActivity"
+            android:exported="true"
+            android:icon="@mipmap/app_icon"
+            android:label="DeviceTool">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -21,9 +21,24 @@
                 android:value="true" />
         </activity>
         <activity
-            android:name=".DeviceToolInternalActivity"
+            android:name=".DeviceToolActivity"
             android:configChanges="assetsPaths|orientation|density|fontScale|layoutDirection|locale|screenLayout|screenSize"
-            android:exported="false">
+            android:exported="false"
+            android:icon="@mipmap/app_icon"
+            android:label="DeviceTool">
+            <meta-data
+                android:name="distractionOptimized"
+                android:value="true" />
+        </activity>
+        <activity
+            android:name=".TestActivity"
+            android:exported="true"
+            android:icon="@android:color/holo_green_light"
+            android:label="LottieSample">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <meta-data
                 android:name="distractionOptimized"
                 android:value="true" />

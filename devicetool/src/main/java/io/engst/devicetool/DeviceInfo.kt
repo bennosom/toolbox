@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.systemGestures
 import androidx.compose.foundation.layout.tappableElement
 import androidx.compose.foundation.layout.waterfall
@@ -63,17 +64,19 @@ fun ColumnScope.DeviceInfo(modifier: Modifier = Modifier) {
         listOf(
             "statusBars" to WindowInsets.statusBars,
             "navigationBars" to WindowInsets.navigationBars,
+            "systemBars" to WindowInsets.systemBars,
             "ime" to WindowInsets.ime,
             "systemGestures" to WindowInsets.systemGestures,
             "displayCutout" to WindowInsets.displayCutout,
             "tappableElement" to WindowInsets.tappableElement,
             "captionBar" to WindowInsets.captionBar,
-            "waterfall" to WindowInsets.waterfall)
+           "waterfall" to WindowInsets.waterfall,
+        )
     insetProps.forEach { (name, inset) ->
-      val left = with(density) { inset.getLeft(density, layoutDirection) }
-      val top = with(density) { inset.getTop(density) }
-      val right = with(density) { inset.getRight(density, layoutDirection) }
-      val bottom = with(density) { inset.getBottom(density) }
+      val left = inset.getLeft(density, layoutDirection)
+      val top = inset.getTop(density)
+      val right = inset.getRight(density, layoutDirection)
+      val bottom = inset.getBottom(density)
       appendLine("  $name = [$left, $top, $right, $bottom]")
     }
 
@@ -94,7 +97,8 @@ fun ColumnScope.DeviceInfo(modifier: Modifier = Modifier) {
               Configuration.UI_MODE_NIGHT_NO -> "no"
               Configuration.UI_MODE_NIGHT_UNDEFINED -> "undefined"
               else -> "unknown"
-            })
+            }
+    )
 
     appendLine()
     appendLine("ANDROID")
