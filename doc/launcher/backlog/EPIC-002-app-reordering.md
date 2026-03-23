@@ -46,13 +46,15 @@ scroll), and between the grid and the quick access bar.
 
 ---
 
-## Known issues / in-progress
+## Known issues / implementation tasks
 
-- [ ] Inter-page drag not yet working — there is no edge-scroll or page-hop during drag
-- [ ] The dragged tile remains visible at origin until `onEnded` fires in some edge cases
-- [ ] `suppressGridMenu` / `showGridMenu` state management during drag has some race conditions
-- [ ] Long-press → context menu → drag: two separate gesture paths need careful sequencing
-- [ ] Bar drag uses duplicate gesture recognition code — should be extracted with grid drag
+| # | Issue | Notes |
+|---|-------|-------|
+| BUG-1 | **Inter-page drag missing** — no edge-scroll or page-hop during drag | Core blocker; see Decisions → page creation via drag for the desired behaviour |
+| BUG-2 | **Ghost tile lingers at origin** — dragged tile stays visible at source cell until `onEnded` fires in some edge cases | Likely caused by `draggingId` not being cleared eagerly enough on `onStarted` |
+| BUG-3 | **Menu state race** — `suppressGridMenu` / `showGridMenu` has race conditions during drag | Needs a unified drag-phase state machine rather than two independent booleans |
+| BUG-4 | **Long-press gesture sequencing** — long-press → context menu and long-press → drag are two separate paths that need careful ordering to avoid conflict | Consider a single `PointerInput` that decides at a threshold whether to open the menu or start a drag |
+| BUG-5 | **Duplicate gesture code** — bar drag uses its own copy of the grid drag recognition logic | Extract shared `draggableAppSource` modifier; use in both `AppTile` (grid) and bar icon |
 
 ---
 

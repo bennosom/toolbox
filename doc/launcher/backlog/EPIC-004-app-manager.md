@@ -70,8 +70,18 @@ Direction toggles between ↑ ascending and ↓ descending by tapping the active
   nature of the screen; sort is cheap to re-apply.
 - [x] **App count in header** — Out of scope for now; the sticky header shows search and filter
   controls. A count badge may be added later without a design decision.
-- [ ] **`AppRow` metadata audit** — `AppRow` implementation not yet reviewed. Needs a code-review
-  pass to document exactly which fields are shown per row.
+- [x] **`AppRow` metadata audit** — `AppListRow` composable (`ui/manager/AppRow.kt:26`).
+  Each row shows:
+  - App icon (48 dp) + label
+  - "Pre-installed system app" / "Installed by user" classification
+  - Package name (component name string)
+  - Version name + version code
+  - Target SDK + minimum SDK
+  - Install date and last-updated date
+  - Inline fuzzy-match highlighting when a search query is active (yellow on black)
+
+  Actions per row: **Launch** (tap row), **Settings** (opens system App Info), **Uninstall**
+  (system dialog; hidden for system apps).
 
 ---
 
