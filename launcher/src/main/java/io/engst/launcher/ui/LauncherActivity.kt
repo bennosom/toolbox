@@ -35,13 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.engst.core.Logging
-import io.engst.core.apps.launchActivity
 import io.engst.core.scopedLogger
 import io.engst.launcher.core.isDefaultLauncher
-import io.engst.launcher.core.launchAppDetails
-import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchDefaultAppSettings
-import io.engst.launcher.core.launchShortcut
 import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.ui.grid.AppGrid
 import io.engst.launcher.ui.manager.AppManager
@@ -101,18 +97,8 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                    modifier = Modifier
                       .fillMaxSize()
                       .safeDrawingPadding(),
-                   savedState = repository.grid.collectAsStateWithLifecycle(null).value,
-                   onAppLaunch = { app -> context.launchActivity(app.componentName) },
-                   onAppDetails = { app -> context.launchAppDetails(app.componentName.packageName) },
-                   onAppRemove = { app ->
-                      context.launchAppRemovalRequest(app.componentName.packageName)
-                   },
-                   onShortcutLaunch = { shortcut -> context.launchShortcut(shortcut) },
-                   onAppManager = { showAppManager = true },
-                   onGridChanged = { repository.setGridSpec(it) },
-                   onResetDefaults = { repository.resetDefaults() },
+                   onNavigateToAppManager = { showAppManager = true },
                    onSetDefaultLauncher = { context.launchDefaultAppSettings() },
-                   onGridUpdate = { repository.update(it) },
                 )
              }
 

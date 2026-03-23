@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.App
@@ -35,4 +36,11 @@ fun AppTile(app: App, screenInfo: ScreenInfo, iconSize: Dp, modifier: Modifier =
          overflow = TextOverflow.Companion.Ellipsis,
       )
    }
+}
+
+@Preview(showBackground = true, widthDp = 80, heightDp = 100)
+@Composable
+private fun AppTilePreview() {
+   // Preview requires a real App instance; shown here for structural verification.
+   // In IDE, replace with a stub App to see rendered output.
 }

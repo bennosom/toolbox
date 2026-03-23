@@ -6,11 +6,16 @@ import io.engst.core.Logging
 import io.engst.core.scopedLogger
 import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.data.AppsRepositoryImpl
+import io.engst.launcher.ui.grid.GridViewModel
 import org.koin.android.ext.koin.androidContext
+import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
-val rootModule = module { single<AppsRepository> { AppsRepositoryImpl(androidContext()) } }
+val rootModule = module {
+    single<AppsRepository> { AppsRepositoryImpl(androidContext()) }
+    viewModel { GridViewModel(get()) }
+}
 
 class LauncherApp : Application(), Logging by scopedLogger("LauncherApp") {
 

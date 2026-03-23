@@ -10,8 +10,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.ui.shared.LocalWallpaperState
+import io.engst.launcher.ui.shared.WallpaperState
+import androidx.compose.runtime.CompositionLocalProvider
 
 @Composable
 fun PageIndicator(count: Int, currentIndex: Int, modifier: Modifier = Modifier) {
@@ -34,5 +38,15 @@ fun PageIndicator(count: Int, currentIndex: Int, modifier: Modifier = Modifier) 
                   .background(color)
          )
       }
+   }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PageIndicatorPreview() {
+   CompositionLocalProvider(
+      LocalWallpaperState provides WallpaperState(isLight = false, suggestedForegroundColor = Color.White),
+   ) {
+      PageIndicator(count = 4, currentIndex = 1)
    }
 }

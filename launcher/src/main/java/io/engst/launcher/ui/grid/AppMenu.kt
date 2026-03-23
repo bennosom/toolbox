@@ -21,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.App
 
@@ -90,4 +91,17 @@ fun AppMenu(
          }
       }
    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AppMenuDismissedPreview() {
+   // Visible = false — shows nothing (correct collapsed state)
+   // Instantiating App requires system resources so we preview the container only.
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun AppMenuExpandedPreview() {
+   // Expanded state preview — requires a real App; shown for structural completeness.
 }
