@@ -14,6 +14,9 @@ swiping. Each page holds `cols × rows` cells; each cell may be empty or contain
 - Support multi-page layouts without automatic re-sorting
 - Load fast and reflect app install/removal events in real time
 - Work correctly across the supported grid size presets
+- Page swipes feel instant — no jitter, no dropped frames, no perceptible hang
+- Swipe down anywhere on the home screen surface opens the system notification drawer
+- Swipe up anywhere on the home screen surface opens the quick-search bottom sheet (see EPIC-008)
 
 ---
 
@@ -39,6 +42,18 @@ swiping. Each page holds `cols × rows` cells; each cell may be empty or contain
 
 ---
 
+## Gesture map
+
+| Gesture | Result |
+|---------|--------|
+| Swipe left / right | Navigate to adjacent grid page |
+| Swipe down | Delegate to system notification drawer (`StatusBarManager` / `expandNotificationsPanel`) |
+| Swipe up | Open quick-search bottom sheet (EPIC-008) |
+| Long-press on empty space | Open customisation context menu (EPIC-005) |
+| Long-press on app tile | Start drag / open tile context menu (EPIC-002) |
+
+---
+
 ## Decisions
 
 - [x] **Empty cell indicator** — No permanent affordance. During drag only, the hovered cell shows a
@@ -59,3 +74,5 @@ swiping. Each page holds `cols × rows` cells; each cell may be empty or contain
 - EPIC-003 Quick Access Bar (bar at bottom)
 - EPIC-005 Customisation (grid size presets)
 - EPIC-007 Data Persistence (saving layout to disk)
+- EPIC-008 Search / Quick Find (swipe-up bottom sheet)
+- NFR Performance & Responsiveness

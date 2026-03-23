@@ -1,0 +1,74 @@
+# EPIC-008 — Search / Quick Find
+
+## Summary
+
+A quick-access search experience triggered by swiping up on the home screen. A bottom sheet slides
+up containing a search input field; results are highlighted directly in the grid in real time as the
+user types. Previous / next buttons let the user step through multiple matches without leaving the
+home screen.
+
+---
+
+## Goals
+
+- Give the user instant access to any installed app by name without navigating to the App Manager
+- Keep the user on the home screen — results appear in place inside the grid, not a separate list
+- Provide prev/next navigation to step through matches when there are more than one
+- Dismiss with a downward swipe or back gesture, leaving the grid in its normal state
+
+---
+
+## UX Specification
+
+### Trigger
+
+- **Swipe up** anywhere on the home screen surface opens the bottom sheet (see EPIC-001 Gesture map).
+- Tapping the search field in any other future entry point (e.g. quick-settings tile) should also
+  open this sheet.
+
+### Bottom Sheet
+
+| Element | Behaviour |
+|---------|-----------|
+| Search input | Auto-focused on open; keyboard raises immediately |
+| Clear button (×) | Visible when input is non-empty; clears text and resets highlights |
+| Prev (‹) button | Navigates to the previous matching tile; wraps around |
+| Next (›) button | Navigates to the next matching tile; wraps around |
+| Match count badge | "2 / 7" style indicator between prev/next buttons; hidden when no query |
+| Dismiss | Swipe down on sheet, back gesture, or tapping outside the sheet |
+
+### Grid Highlighting
+
+- All tiles whose label **fuzzy-matches** the current query are highlighted (e.g. accent border or
+  tinted overlay — exact visual TBD).
+- The **active match** (the one prev/next is positioned on) is additionally emphasised
+  (e.g. pulsing ring or scale pop).
+- The pager automatically scrolls to the page containing the active match.
+- When the query is cleared or the sheet is dismissed, all highlights are removed and the grid
+  returns to its normal appearance.
+
+### Matching algorithm
+
+- Case-insensitive substring match on the app label is the baseline.
+- Fuzzy matching (same `fuzzyMatchRanges` approach used in `AppRow`) may be applied to tolerate
+  minor typos; this is a quality-of-life improvement and not required for v1.
+- Results are ordered: **page order → row → column** (reading order).
+
+---
+
+## Decisions
+
+- [ ] **Highlight style** — exact visual treatment for matched vs. active-match tile (border,
+  overlay, scale, glow — needs design decision).
+- [ ] **Sheet height** — peek height that leaves enough grid visible to be useful; likely 25–30% of
+  screen height.
+- [ ] **Keyboard behaviour on dismiss** — whether the software keyboard should close together with
+  the sheet or only after a second dismiss action.
+
+---
+
+## Related
+
+- EPIC-001 App Grid (gesture trigger; grid highlight rendering)
+- EPIC-004 App Manager (uses the same fuzzy-match logic for the list view)
+- NFR Performance & Responsiveness (search must filter on every keystroke without UI lag)

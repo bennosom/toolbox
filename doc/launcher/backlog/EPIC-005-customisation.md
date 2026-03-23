@@ -62,11 +62,30 @@ a `Snackbar` is shown with an action to open Default App Settings.
 
 ## Planned: Wallpaper Picker
 
-A proper wallpaper browsing and selection UI. Details TBD, but expected to cover:
-- Browsing a set of built-in wallpapers
-- Picking a photo from the system media picker
-- Solid/gradient color options (formal replacement for the dev shortcuts above)
-- Preview before applying
+A proper wallpaper browsing and selection UI accessible from the long-press customisation menu.
+
+### Sources
+
+| Source | Mechanism |
+|--------|-----------|
+| Device photo / image | Storage Access Framework — `ActivityResultContracts.PickVisualMedia` (Android 13+) with `PickVisualMedia.ImageOnly` MIME filter; falls back to `GetContent("image/*")` on older API levels |
+| Built-in wallpapers | Bundled drawable assets; shown in a horizontal scroll strip |
+| Solid / gradient colour | Replaces the current dev shortcut colours; colour picker or preset swatches |
+
+### Flow
+
+1. User opens the customisation context menu → taps **Wallpaper**.
+2. A bottom sheet shows three tabs: **Photos**, **Built-in**, **Colour**.
+3. Selecting an image from any tab renders a **live preview** (full-screen, non-destructive) before
+   the user confirms.
+4. On confirm: `WallpaperManager.setStream()` (or `setBitmap()`) applies the wallpaper system-wide.
+5. On cancel: no changes are made; the sheet dismisses.
+
+### Permissions
+
+- No `READ_EXTERNAL_STORAGE` required when using `PickVisualMedia` (photo picker grants temporary
+  URI access without a persistent permission).
+- `SET_WALLPAPER` permission must be declared in the manifest.
 
 ---
 
@@ -88,3 +107,4 @@ A proper wallpaper browsing and selection UI. Details TBD, but expected to cover
 
 - EPIC-001 App Grid (grid spec)
 - EPIC-007 Data Persistence (persisting custom spec)
+- NFR Performance & Responsiveness (wallpaper decode off UI thread)

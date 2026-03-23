@@ -11,7 +11,9 @@ scroll), and between the grid and the quick access bar.
 ## Goals
 
 - Give the user full control over app placement without a dedicated "edit mode" modal
-- Support the four drag scenarios: grid→grid, grid→bar, bar→grid, bar→bar
+- Support drag within a page and across pages (edge-scroll or page-hop triggers navigation)
+- Support grid ↔ quick-access bar drag in both directions (grid→bar, bar→grid)
+- Support drag to AAOS system bar slots (status bar / navigation bar drop targets exposed by SystemUI)
 - Keep the grid state consistent at all times — no lost apps, no duplicates
 - Provide clear visual feedback during the drag (ghost image, animated reflow)
 
@@ -74,3 +76,4 @@ scroll), and between the grid and the quick access bar.
 
 - EPIC-001 App Grid
 - EPIC-003 Quick Access Bar
+- NFR Performance & Responsiveness (drag must never block the UI thread)
