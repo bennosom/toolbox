@@ -3,8 +3,10 @@
 ## Summary
 
 Users can place Android app widgets directly on the home screen grid. Widgets span one or more grid
-cells, are resizable, and are discovered through a **Widget Gallery** bottom sheet reachable from
-the long-press context menu. Widgets are added by dragging them from the gallery onto the grid.
+cells, are resizable, and are discovered through a **Widget Gallery** panel reachable from the
+long-press context menu. The gallery occupies 0.2f of the screen alongside the grid (0.8f),
+anchored to the shortest screen edge. Multiple widgets can be added in one session without
+closing the gallery. Widgets are added by dragging them from the gallery onto the grid.
 
 ---
 
@@ -22,23 +24,49 @@ the long-press context menu. Widgets are added by dragging them from the gallery
 ### Entry point
 
 Long-press on empty grid space → context menu → **Widgets** opens the Widget Gallery as a
-`ModalBottomSheet` (same pattern as App Manager).
+persistent panel alongside the grid (not a modal sheet).
 
-### Gallery layout
+### Panel placement — smallest-edge rule
 
-- A vertically scrolling list grouped by **provider app** (header per app with icon + name).
-- Each widget preview card shows:
-  - The widget preview image (from `AppWidgetProviderInfo.previewImage`, fallback to app icon)
-  - Widget name (`AppWidgetProviderInfo.loadLabel`)
-  - Default size expressed in cells (e.g. "4 × 2")
-- The sheet is **searchable** — a search field at the top filters by widget name or provider app.
+The gallery panel is anchored to the **shortest screen edge** of the current window configuration:
+
+| Configuration | Shortest edge | Gallery placement | Gallery scroll direction |
+|--------------|---------------|-------------------|--------------------------|
+| Portrait | Bottom | Below the grid | Horizontal |
+| Landscape | Side (left) | Left of the grid | Vertical |
+
+The grid and gallery share the full screen in a `Row` (landscape) or `Column` (portrait) with
+`weight` allocations:
+
+| Slot | Weight |
+|------|--------|
+| Grid | `0.8f` |
+| Gallery panel | `0.2f` |
+
+The grid is **condensed** into its 0.8f slot; its internal grid spec (column count, cell sizes,
+gutters) is not recalculated — the grid layout renders into the reduced space unchanged.
+
+### Gallery list layout
+
+The list is grouped by **provider app**. Each group has a sticky app header (icon + app name).
+Within each group, widget cards are laid out in the scroll direction. Each card shows:
+
+- Widget preview image (`AppWidgetProviderInfo.previewImage`; fallback: app icon)
+- Widget name (`AppWidgetProviderInfo.loadLabel`)
+- Default grid size (e.g. "4 × 2")
+
+### Multi-add — gallery stays open
+
+After a widget is successfully placed on the grid the gallery panel **remains visible**. The user
+can continue dragging more widgets from the gallery without reopening it. The gallery is dismissed
+explicitly via a close button or the system back gesture.
 
 ### Drag-to-place
 
 The user initiates a drag directly from a widget card in the gallery. As the finger crosses the
 grid, a ghost preview sized to the widget's default cell span tracks the pointer. Releasing over a
 valid (unoccupied, in-bounds) target area places the widget there. Releasing outside a valid area
-or back over the sheet cancels the operation.
+or back over the gallery cancels the operation.
 
 ---
 
@@ -66,11 +94,21 @@ configuration the widget is removed.
 
 ## Widget Resize
 
-After placement the user can resize a widget by long-pressing it to reveal **resize handles** on its
-edges. Dragging a handle expands or shrinks the widget by whole cell increments. The resize
-respects `minResizeWidth`, `minResizeHeight`, `maxResizeWidth`, `maxResizeHeight` from
-`AppWidgetProviderInfo`. Apps displaced by an expanding widget are not automatically moved — the
-resize is blocked if it would overlap occupied cells.
+After placement the user can resize a widget via long-press → context menu → **Resize**.
+
+### Resize chrome
+
+While resize mode is active the widget is surrounded by a **rounded-corner border** drawn over the
+grid. Four circular **thumb handles** sit on the border line, one centred on each edge (top, right,
+bottom, left). Nothing else in the UI changes.
+
+### Resize interaction
+
+Dragging a thumb expands or shrinks the widget along the corresponding axis in whole-cell
+increments. The resize respects `minResizeWidth`, `minResizeHeight`, `maxResizeWidth`,
+`maxResizeHeight` from `AppWidgetProviderInfo`. Apps displaced by an expanding widget are not
+automatically moved — the resize is blocked if it would overlap occupied cells. Tapping outside the
+widget exits resize mode.
 
 ---
 
