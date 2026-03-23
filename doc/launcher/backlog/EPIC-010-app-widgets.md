@@ -107,8 +107,9 @@ bottom, left). Nothing else in the UI changes.
 Dragging a thumb expands or shrinks the widget along the corresponding axis in whole-cell
 increments. The resize respects `minResizeWidth`, `minResizeHeight`, `maxResizeWidth`,
 `maxResizeHeight` from `AppWidgetProviderInfo`. Apps displaced by an expanding widget are not
-automatically moved — the resize is blocked if it would overlap occupied cells. Tapping outside the
-widget exits resize mode.
+automatically moved — the resize is blocked if it would overlap occupied cells. When blocked, the
+thumb simply stops; no extra visual feedback or error toast is shown. Tapping outside the widget
+exits resize mode.
 
 ---
 
@@ -135,6 +136,9 @@ widget exits resize mode.
 - [x] **Partially occupied cell** — **round up**. A widget whose `minWidth` / `minHeight` does not
   align to a whole cell boundary always claims the next full cell. Standard Android launcher
   practice; avoids sub-cell clipping artefacts.
+- [x] **Resize-blocked feedback** — When a resize thumb hits an occupied cell boundary the thumb
+  stops moving. No error toast, border flash, or haptic is shown. Silent stop keeps the
+  interaction calm and avoids noise for an expected constraint.
 - [x] **Widget update frequency** — no launcher-side rate-limiting. `AppWidgetManager` enforces its
   own update intervals per provider; the launcher does not add further throttling. Reassess if
   battery impact is reported in testing.

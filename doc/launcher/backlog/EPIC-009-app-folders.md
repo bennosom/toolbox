@@ -21,13 +21,23 @@ from, and moved between folders by drag and drop.
 
 ### Folder creation
 
-Drag any app tile on top of another app tile. When the ghost hovers over the target for long enough
-(dwell threshold, ~600 ms) or the user releases, the two apps merge into a new unnamed folder in
-that cell.
+Drag any app tile on top of another app tile. Folder creation is a two-phase dwell gesture:
+
+1. **500 ms hover** → a visual indicator activates on the target cell (e.g. a glowing ring or pulsing
+   animation) signalling that a folder is about to form. The user can abort by moving away.
+2. **+1 000 ms additional hover (1 500 ms total)** → the two apps merge into a new unnamed folder in
+   that cell. The indicator completes its animation and the folder tile appears.
+
+Releasing the drag at any point before 1 500 ms cancels folder creation and the app performs a
+normal drop instead (rejected on occupied cell, placed on empty cell).
 
 ### Folder tile (collapsed state)
 
-- Displays a 2×2 (or 3×3 if more than four apps) icon collage of the first apps in the folder.
+- Displays a **3×3 grid** of app icons (always 9 slots):
+  - Slots filled with the first apps in the folder, in order.
+  - Unfilled slots are blank/transparent.
+  - When the folder contains **more than 9 apps**, the 9th slot shows a `…` indicator instead of an
+    icon to communicate that the folder has additional content.
 - A name label below the tile (same position as a regular app label); empty until the user sets one.
 - Tap → expand the folder.
 

@@ -64,7 +64,8 @@ swiping. Each page holds `cols × rows` cells; each cell may be empty or contain
 - [x] **Page count** — Unlimited. Pages are added automatically when new apps overflow the last page
   or when the user drags past the last page.
 - [x] **Empty page collapse** — When all apps on a page are removed or uninstalled the page
-  auto-collapses. The final remaining page is never removed (minimum one page at all times).
+  auto-collapses. The pager snaps to the preceding page (or stays on page 0 if the collapsed page
+  was the first). The final remaining page is never removed (minimum one page at all times).
 
 ---
 

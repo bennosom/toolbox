@@ -71,8 +71,11 @@ across all form factors.
 - [x] **`ScreenInfo` → column count** — Auto-detect on first launch only. Thereafter `ScreenInfo`
   is a layout hint (padding, margins, panel splits) and does not override the user's chosen spec.
 - [x] **Foldable book** — Two independent grids. Each panel maintains its own `Grid` model, page
-  set, and bar. The two grids share no state. Switching from book to flat/portrait merges or
-  suspends one grid (strategy TBD in implementation).
+  set, and bar. The two grids share no state.
+  - **Book (unfolded):** both panels are active and rendered side-by-side.
+  - **Flat/folded:** only the primary (left) panel grid is shown. The secondary panel grid is
+    **suspended** — it remains fully persisted and is restored when the device unfolds back to
+    book mode. No content is lost or merged.
 - [x] **Foldable tabletop lower panel** — Quick bar + a notification/widget tray area. Exact
   widget content is TBD, but the lower panel is not an empty strip.
 - [x] **Desktop target** — In scope for layout (column count, spacing). Pointer-specific

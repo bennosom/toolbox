@@ -77,6 +77,11 @@ scroll), and between the grid and the quick access bar.
   no effect; the dragged app snaps back to its origin. There is no automatic swap or displacement.
   The user must manually clear the target cell before the drop is accepted. This keeps moves
   explicit and avoids accidental overwriting.
+- [x] **Bar shift vs. grid no-op asymmetry** — Bar → Bar reorders by shifting neighbours because
+  the bar is a 1-D list where shifting is natural, cheap, and expected by users (mirrors standard
+  Android dock behaviour). The grid is 2-D: cascading a shift across rows/pages would be complex,
+  non-obvious, and easy to trigger accidentally. The grid therefore uses no-op-on-occupied as the
+  simpler, safer model.
 
 ---
 
