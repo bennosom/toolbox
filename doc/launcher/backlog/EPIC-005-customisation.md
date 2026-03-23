@@ -98,7 +98,14 @@ A proper wallpaper browsing and selection UI accessible from the long-press cust
 - [x] **Dark mode** — In-app override toggle: system / light / dark. The current redirect to system
   Display Settings is replaced by a tri-state toggle in the customisation menu.
 - [x] **Reset defaults** — No confirmation dialog. Instead a `Snackbar` with an **Undo** action is
-  shown immediately after reset fires, giving the user a brief window to reverse.
+  shown immediately after reset fires, giving the user a brief window to reverse. Snackbar duration
+  is **4 seconds** (Material 3 default). The layout reset to disk is deferred until the snackbar
+  times out or is explicitly dismissed; an Undo tap within that window reverts the state without
+  writing to DataStore.
+- [x] **barSlots scope** — `barSlots` is a **global** preference: one value for all grid specs.
+  Changing the grid spec (cols/rows) does not change the bar slot count. `barSlots` is persisted as
+  a top-level field in `GridData` (owned by EPIC-007). The current coupling to `spec.rows` is a
+  temporary default until this field is implemented.
 - [x] **Settings surface** — Options stay in the long-press context menu dropdown. No dedicated
   Settings screen is planned. The menu may grow but stays in place.
 

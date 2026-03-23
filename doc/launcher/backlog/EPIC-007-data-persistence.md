@@ -45,8 +45,11 @@ The in-memory model is already serialisation-friendly: it uses only primitive ty
 message GridData {
   int32 cols = 1;
   int32 rows = 2;
-  repeated GridPage grid = 3;  // absent = auto-populate
-  repeated string bar = 4;     // absent = auto-populate; values = ComponentName strings
+  repeated GridPage grid = 3;     // absent = auto-populate
+  repeated string bar = 4;        // absent = auto-populate; values = ComponentName strings
+  bool has_user_grid = 5;         // true once the user has committed a custom grid layout
+  bool has_user_bar = 6;          // true once the user has committed a custom bar layout
+  int32 bar_slots = 7;            // global bar slot count (see EPIC-005); 0 = use cols as default
 }
 
 message GridPage {
@@ -59,6 +62,12 @@ message GridCell {
   string app_id = 3;  // ComponentName.flattenToString(); empty = vacant cell
 }
 ```
+
+> **Null vs. empty semantics:** Protobuf `repeated` fields cannot distinguish "absent" from "empty
+> list" at the wire level. The `has_user_grid` / `has_user_bar` boolean sentinels solve this:
+> when `false`, the implementation ignores the `grid` / `bar` fields and auto-populates defaults
+> regardless of their contents. `resetDefaults()` sets both booleans to `false` (it does not need
+> to clear the repeated fields).
 
 ### Migration path
 1. Add `datastore-proto` dependency and generate `GridData` Protobuf class
@@ -79,6 +88,12 @@ message GridCell {
   Backup by default. No active Drive sync or user-visible backup management is in scope.
 - [x] **Migration story** — Not applicable pre-launch (no persisted state exists yet). Post-launch
   migrations will use DataStore's built-in `DataMigration` API. No bespoke migration tooling needed.
+- [x] **Null vs. empty sentinel** — `has_user_grid` and `has_user_bar` boolean fields distinguish
+  "never customised" from "deliberately empty." When either flag is `false` the corresponding
+  repeated field is ignored and defaults are auto-populated. `resetDefaults()` clears these flags.
+- [x] **barSlots field** — `bar_slots: int32` (field 7). `0` means "use `cols` as the default."
+  This is a global value; changing the grid spec does not change `bar_slots`. Owned by this schema
+  and exposed via EPIC-005 customisation settings.
 - [x] **Export/import** — Not in scope.
 
 ---

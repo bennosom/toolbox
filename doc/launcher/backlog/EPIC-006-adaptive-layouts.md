@@ -76,6 +76,10 @@ across all form factors.
   - **Flat/folded:** only the primary (left) panel grid is shown. The secondary panel grid is
     **suspended** — it remains fully persisted and is restored when the device unfolds back to
     book mode. No content is lost or merged.
+  - **Storage model:** two separate `DataStore<GridData>` instances with distinct file names
+    (e.g. `grid_primary.pb` and `grid_secondary.pb`). App installs/uninstalls while in flat mode
+    update only the primary store; the secondary store is not touched until the device is back in
+    book mode and `AppsRepositoryImpl` reattaches to it.
 - [x] **Foldable tabletop lower panel** — Quick bar + a notification/widget tray area. Exact
   widget content is TBD, but the lower panel is not an empty strip.
 - [x] **Desktop target** — In scope for layout (column count, spacing). Pointer-specific

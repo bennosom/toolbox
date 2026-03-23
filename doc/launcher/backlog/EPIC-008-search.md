@@ -43,7 +43,8 @@ home screen.
   tinted overlay — exact visual TBD).
 - The **active match** (the one prev/next is positioned on) is additionally emphasised
   (e.g. pulsing ring or scale pop).
-- The pager automatically scrolls to the page containing the active match.
+- The pager automatically scrolls to the page containing the active match **when the user
+  navigates via Prev / Next**. Manual paging (swipe) is never overridden by auto-scroll.
 - When the query is cleared or the sheet is dismissed, all highlights are removed and the grid
   returns to its normal appearance.
 
@@ -66,6 +67,13 @@ home screen.
   70 % of the grid visible so the user can see highlights while typing.
 - [x] **Keyboard behaviour on dismiss** — The software keyboard closes together with the sheet in a
   single dismiss action (swipe-down or back). No two-step dismiss.
+- [x] **Active match cursor on re-filter** — When the user types a new character and the match list
+  changes, the active match index is preserved if the previously active app is still in the new
+  result set. If it is no longer a match, the cursor resets to match 1.
+- [x] **Pager auto-scroll scope** — Auto-scroll to the active match's page fires **only** when
+  triggered by the Prev / Next buttons. If the user manually swipes to a different page while search
+  is open, the active match stays highlighted but the pager does not jump back. Auto-scroll resumes
+  on the next Prev / Next press.
 
 ---
 
