@@ -34,6 +34,11 @@ plugins {
        buildFeatures {
           compose = true
        }
+       testOptions {
+          unitTests {
+             isIncludeAndroidResources = true
+          }
+       }
     }
 
   dependencies {
@@ -51,12 +56,16 @@ plugins {
      implementation(libs.androidx.compose.foundation)
      implementation(libs.androidx.compose.material.iconsExtended)
      implementation(libs.koin.android)
+     implementation(libs.koin.androidx.compose)
+     implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
      testImplementation(libs.junit)
-     androidTestImplementation(libs.androidx.junit)
-     androidTestImplementation(libs.androidx.espresso.core)
-     androidTestImplementation(platform(libs.androidx.compose.bom))
-     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+     testImplementation(libs.robolectric)
+     testImplementation(libs.kotlinx.coroutines.test)
+     testImplementation(libs.koin.test.junit4)
+     testImplementation(libs.androidx.test.core)
+     testImplementation(platform(libs.androidx.compose.bom))
+     testImplementation(libs.androidx.compose.ui.test.junit4)
      debugImplementation(libs.androidx.ui.tooling)
      debugImplementation(libs.androidx.compose.ui.test.manifest)
   }

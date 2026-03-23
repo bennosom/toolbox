@@ -12,6 +12,9 @@ espressoCore = "3.7.0"
 material = "1.13.0"
 lifecycleRuntimeKtx = "2.9.3"
 koin = "4.0.1"
+robolectric = "4.13"
+coroutinesTest = "1.8.1"
+lifecycleViewmodel = "2.9.3"
 
 [libraries]
 androidx-compose-adaptive = { module = "androidx.compose.material3.adaptive:adaptive", version.ref = "adaptive" }
@@ -34,6 +37,12 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
+koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
+koin-test-junit4 = { group = "io.insert-koin", name = "koin-test-junit4", version.ref = "koin" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodel" }
+androidx-test-core = { group = "androidx.test", name = "core", version = "1.6.1" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
