@@ -44,11 +44,10 @@ Only apps actually installed are included; missing defaults are silently skipped
 - [x] **Bar capacity** — Decoupled from `spec.rows`. Bar slot count is an independent user-configurable
   value exposed in the customisation settings. The current coupling to `spec.rows` is a temporary
   default and should be replaced with a dedicated `barSlots` setting (see EPIC-005).
-- [x] **Empty slot placeholders** — Supported. Users may leave intentional gaps between bar icons.
-  An empty slot is a first-class bar item that occupies space and can be dragged around or removed.
-- [x] **Max bar slots** — No hard cap. Overflow is naturally constrained by the physical bar width;
-  icons below the minimum touch-target size are not shown. The drag system prevents adding more slots
-  than fit comfortably at the minimum icon size.
+- [x] **Empty slot placeholders** — Not supported. Removing an app closes the gap immediately;
+  remaining icons are horizontally centred. No placeholder concept exists in the bar.
+- [x] **Max bar slots** — No hard cap. When icons exceed the bar width the bar scrolls horizontally;
+  no icon is hidden or clipped. There is no minimum-size enforcement — scroll is the overflow strategy.
 - [x] **Bar labels** — No labels, intentional. The minimal icon-only aesthetic is by design.
 - [x] **Bar visibility** — The bar can be hidden via a toggle in the customisation settings.
 
