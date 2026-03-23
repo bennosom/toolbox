@@ -89,13 +89,17 @@ resize is blocked if it would overlap occupied cells.
 
 ## Decisions
 
-- [ ] **Widget removal** — gesture to remove a placed widget (long-press → "Remove" option, or drag
-  to a trash zone; exact affordance TBD).
-- [ ] **Widget in bar** — out of scope; the quick-access bar (EPIC-003) holds single app icons only.
-- [ ] **Partially occupied cell** — whether a widget whose `minWidth` does not align to a whole cell
-  is rounded up or allowed to be slightly clipped; standard Android practice is round-up.
-- [ ] **Widget update frequency** — no special rate-limiting beyond what `AppWidgetManager` provides
-  by default; reassess if battery impact is reported.
+- [x] **Widget removal** — **long-press the widget → context menu → "Remove"**. Consistent with the
+  app tile long-press pattern; no separate trash zone needed. The menu also exposes "Resize" as a
+  shortcut to enter resize mode.
+- [x] **Widget in bar** — not supported. Quick-access bar slots (EPIC-003) hold single app icons
+  only.
+- [x] **Partially occupied cell** — **round up**. A widget whose `minWidth` / `minHeight` does not
+  align to a whole cell boundary always claims the next full cell. Standard Android launcher
+  practice; avoids sub-cell clipping artefacts.
+- [x] **Widget update frequency** — no launcher-side rate-limiting. `AppWidgetManager` enforces its
+  own update intervals per provider; the launcher does not add further throttling. Reassess if
+  battery impact is reported in testing.
 
 ---
 

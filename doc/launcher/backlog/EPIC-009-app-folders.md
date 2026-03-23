@@ -64,15 +64,18 @@ removes it from its original cell.
 
 ## Decisions
 
-- [ ] **Expansion animation** — whether the folder expands with a scale+fade from the cell or slides
-  up as a small bottom-anchored panel.
-- [ ] **Max folder capacity** — whether a hard cap exists (e.g. 16 apps) or the panel scrolls
-  without limit.
-- [ ] **Folder in bar** — whether folders are allowed in the quick-access bar (EPIC-003); likely
-  no for v1.
-- [ ] **Folder persistence** — folder structure stored as part of the `Grid` model (EPIC-007);
-  exact data shape TBD.
-- [ ] **Folder on AAOS system bars** — out of scope; system bar slots hold single apps only.
+- [x] **Expansion animation** — **scale + fade from the cell**. The folder tile scales up in place
+  and its contents fade in as a floating overlay anchored to the cell. This preserves spatial
+  context — the user can see which cell the folder lives in while browsing its contents.
+- [x] **Max folder capacity** — **no hard cap; the expanded panel scrolls**. Simpler model, no
+  arbitrary limit to communicate or enforce.
+- [x] **Folder in bar** — **not supported**. Quick-access bar slots (EPIC-003) hold single app
+  icons only. Folders are a grid-only concept.
+- [x] **Folder persistence** — Folder structure is stored as part of the `Grid` model (EPIC-007).
+  A folder is a first-class cell item (`FolderCell`) containing an ordered list of `App` entries
+  and an optional name string. The `Grid` schema extension is owned by EPIC-007.
+- [x] **Folder on AAOS system bars** — out of scope. System bar drop targets (EPIC-002) accept
+  single apps only.
 
 ---
 

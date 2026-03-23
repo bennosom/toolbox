@@ -58,12 +58,14 @@ home screen.
 
 ## Decisions
 
-- [ ] **Highlight style** — exact visual treatment for matched vs. active-match tile (border,
-  overlay, scale, glow — needs design decision).
-- [ ] **Sheet height** — peek height that leaves enough grid visible to be useful; likely 25–30% of
-  screen height.
-- [ ] **Keyboard behaviour on dismiss** — whether the software keyboard should close together with
-  the sheet or only after a second dismiss action.
+- [x] **Highlight style** — **scale pop + border ring**. All matched tiles receive an accent border.
+  The active match (the one prev/next is positioned on) additionally scales to 1.1× with a brief
+  spring animation. Non-matching tiles dim slightly. This clearly separates "has a match" from
+  "is the current match" without a separate overlay layer.
+- [x] **Sheet height** — 28 % of screen height as the default peek height. This leaves roughly
+  70 % of the grid visible so the user can see highlights while typing.
+- [x] **Keyboard behaviour on dismiss** — The software keyboard closes together with the sheet in a
+  single dismiss action (swipe-down or back). No two-step dismiss.
 
 ---
 
