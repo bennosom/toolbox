@@ -23,7 +23,8 @@ product focused and the UX clean.
 
 | Menu item | Action |
 |-----------|--------|
-| Apps list | Opens App Manager |
+| Apps list | Opens App Manager as a bottom sheet (EPIC-004) |
+| Widgets | Opens Widget Gallery as a bottom sheet (EPIC-010) |
 | Set as default launcher | Opens system Default Apps settings |
 | Reset defaults | Clears layout and re-seeds from installed apps |
 | Grid size presets | 4×3, 5×3, 3×4, 4×5 — calls `setGridSpec` → `resetDefaults(spec)` |
@@ -106,5 +107,8 @@ A proper wallpaper browsing and selection UI accessible from the long-press cust
 ## Related
 
 - EPIC-001 App Grid (grid spec)
+- EPIC-004 App Manager (opened as bottom sheet from context menu)
 - EPIC-007 Data Persistence (persisting custom spec)
+- EPIC-009 App Folders
+- EPIC-010 App Widgets (widget gallery opened from context menu)
 - NFR Performance & Responsiveness (wallpaper decode off UI thread)

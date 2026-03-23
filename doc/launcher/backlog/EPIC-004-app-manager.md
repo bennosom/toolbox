@@ -2,9 +2,9 @@
 
 ## Summary
 
-A full-screen diagnostic view for power users and developers. It lists all installed apps with
-technical metadata (target SDK, package name, last updated) and allows launching, inspecting, and
-uninstalling apps.
+A diagnostic view for power users and developers presented as a **bottom sheet** over the home
+screen. It lists all installed apps with technical metadata (target SDK, package name, last updated)
+and allows launching, inspecting, and uninstalling apps.
 
 > **Important context:** The launcher grid always shows *all* installed and launchable apps — there
 > is no hidden app drawer distinction. App Manager is therefore not needed for app discovery; it is
@@ -26,7 +26,8 @@ uninstalling apps.
 |--------|--------|
 | Component | `AppManager` composable (`ui/manager/AppManager.kt`) |
 | Entry point | Grid context menu → "Apps list" |
-| Exit | Close button (top left) — returns to the app grid |
+| Presentation | `ModalBottomSheet` over the home screen (grid remains visible and interactive behind the scrim) |
+| Exit | Swipe down, back gesture, or tap outside the sheet |
 | Layout | `LazyVerticalGrid` with adaptive columns (min 300 dp) — scales on tablets |
 | Header | Sticky — survives scrolling |
 
@@ -62,8 +63,9 @@ Direction toggles between ↑ ascending and ↓ descending by tapping the active
 
 ## Decisions
 
-- [x] **Presentation** — Stays full-screen modal (replaces the grid). This is appropriate for a
-  developer/power-user tool that is not part of normal daily flow.
+- [x] **Presentation** — `ModalBottomSheet` over the home screen. The grid stays visible behind the
+  scrim — the user can see their apps while consulting metadata. The sheet replaces the previous
+  full-screen modal approach.
 - [x] **Add to grid/bar from here** — Not in scope. The grid already shows all installed apps;
   there is no need to "add" from App Manager. The feature is view/search/launch/uninstall only.
 - [x] **Sort state persistence** — Sort state resets on each open. Acceptable given the dev-tool
