@@ -39,12 +39,17 @@ swiping. Each page holds `cols × rows` cells; each cell may be empty or contain
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] Empty cells have no visual affordance — should they be indicated (dashed border, dim slot)?
-- [ ] Page auto-scroll during drag: should hovering near the edge of a page scroll to the next one?
-- [ ] Maximum page count — is there a cap, or unlimited pages?
-- [ ] What happens when all apps are uninstalled from a page — does the page collapse?
+- [x] **Empty cell indicator** — No permanent affordance. During drag only, the hovered cell shows a
+  white glowing dot that fades in on pointer-enter and fades out on pointer-leave. All other empty
+  cells remain invisible.
+- [x] **Edge-scroll during drag** — Hovering within the edge zone of a page during drag auto-scrolls
+  to the adjacent page. See EPIC-002 for the drag specification.
+- [x] **Page count** — Unlimited. Pages are added automatically when new apps overflow the last page
+  or when the user drags past the last page.
+- [x] **Empty page collapse** — When all apps on a page are removed or uninstalled the page
+  auto-collapses. The final remaining page is never removed (minimum one page at all times).
 
 ---
 

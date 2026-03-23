@@ -34,12 +34,20 @@ product focused and the UX clean.
 > **Note:** The solid-color wallpaper options are placeholder/dev tooling.
 > A full wallpaper picker is planned (see below).
 
-### Grid size presets (implemented)
-Available presets: `4×3`, `5×3`, `3×4`, `4×5`
+### Grid size (planned replacement)
+The fixed-preset approach is superseded. Grid size will be configured via **numeric col/row
+steppers** (fully custom input). The menu item currently labelled "Grid size presets" will open
+a control with independent column and row steppers.
 
-> **Gap:** Changing the grid spec currently calls `resetDefaults`, which discards the existing
-> layout. A merge strategy that preserves app order as much as possible is a planned improvement
-> (TODO in `setGridSpec`).
+#### Spec-change layout migration
+When the user changes the grid spec, the flow is:
+1. A **preview sheet** is shown with the proposed new layout rendered at reduced scale.
+2. An **evolution-based placement algorithm** fills the new grid by trying to preserve relative
+   app positions as closely as possible (fitness = proximity to original cell, no overlaps).
+3. The user confirms or cancels. On confirm, the new spec and recomputed layout are committed.
+
+> The current `setGridSpec` → `resetDefaults` path is the temporary implementation and will be
+> replaced by the preview + migration flow above.
 
 ### Default launcher prompt
 On every `onResume`, `LauncherActivity` checks `isDefaultLauncher()`. If not set as default,
@@ -62,13 +70,17 @@ A proper wallpaper browsing and selection UI. Details TBD, but expected to cover
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] Should grid size presets be user-configurable (custom cols/rows input) or always a fixed list?
-- [ ] Grid spec change destroys layout — merge strategy needs design: compact-fill? keep-and-trim?
-- [ ] "Dark mode" redirects to system settings — is an in-app override desired?
-- [ ] Should there be a confirmation dialog for "Reset defaults"?
-- [ ] Should customisation options grow into a dedicated Settings screen rather than a dropdown?
+- [x] **Grid size input** — Fully custom col/row steppers. No fixed preset list. Replaces the
+  current four-preset chip group.
+- [x] **Grid spec change** — Preview before apply + evolution-based placement. See spec above.
+- [x] **Dark mode** — In-app override toggle: system / light / dark. The current redirect to system
+  Display Settings is replaced by a tri-state toggle in the customisation menu.
+- [x] **Reset defaults** — No confirmation dialog. Instead a `Snackbar` with an **Undo** action is
+  shown immediately after reset fires, giving the user a brief window to reverse.
+- [x] **Settings surface** — Options stay in the long-press context menu dropdown. No dedicated
+  Settings screen is planned. The menu may grow but stays in place.
 
 ---
 

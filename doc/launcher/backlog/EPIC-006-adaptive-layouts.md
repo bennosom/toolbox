@@ -48,28 +48,35 @@ across all form factors.
 
 ---
 
-## Planned adaptations (design TBD)
+## Planned adaptations
 
 | Form factor | Expected behaviour |
 |-------------|-------------------|
 | `MOBILE_PORTRAIT` | Default layout — current behaviour |
 | `MOBILE_LANDSCAPE` | Reduced row height; wider page; bar may move to side |
-| `TABLET_PORTRAIT` | Larger default grid spec; wider tiles or multi-panel |
-| `TABLET_LANDSCAPE` | Side-by-side panels (e.g. grid + app manager) |
-| `FOLDABLE_BOOK` | Two distinct half-screen areas, one per panel |
-| `FOLDABLE_TABLETOP` | Grid in upper half; quick bar and controls in lower half |
+| `TABLET_PORTRAIT` | Auto-detected larger initial grid spec; wider tiles |
+| `TABLET_LANDSCAPE` | Auto-detected larger initial grid spec; landscape proportions |
+| `FOLDABLE_BOOK` | **Two independent grids** — each panel hosts its own grid with its own pages and layout |
+| `FOLDABLE_TABLETOP` | Grid in upper half; quick bar + notification/widget tray in lower half |
 | `FOLDABLE_FLAT` | Treat as tablet |
-| `DESKTOP` | Large grid, pointer-friendly interaction (hover states, right-click menu) |
+| `DESKTOP` | Layout adaptations in scope; pointer-specific interactions (hover, right-click) deferred |
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] Should grid spec defaults differ per form factor (e.g. 6×5 on tablet vs 4×4 on phone)?
-- [ ] Foldable tabletop — what belongs in the lower panel beyond the quick bar?
-- [ ] Foldable book — should each panel have its own independent grid page, or show one continuous grid?
-- [ ] Desktop — right-click / pointer support needed? Is this a target at all?
-- [ ] Should `ScreenInfo` be exposed to the grid to drive column count automatically, or remain a layout hint?
+- [x] **Per-form-factor defaults** — On first launch `ScreenInfo` is used to auto-select a sensible
+  initial `GridSpec` (e.g. more columns on wider screens). After first run the spec is user-controlled
+  and never overridden by layout changes.
+- [x] **`ScreenInfo` → column count** — Auto-detect on first launch only. Thereafter `ScreenInfo`
+  is a layout hint (padding, margins, panel splits) and does not override the user's chosen spec.
+- [x] **Foldable book** — Two independent grids. Each panel maintains its own `Grid` model, page
+  set, and bar. The two grids share no state. Switching from book to flat/portrait merges or
+  suspends one grid (strategy TBD in implementation).
+- [x] **Foldable tabletop lower panel** — Quick bar + a notification/widget tray area. Exact
+  widget content is TBD, but the lower panel is not an empty strip.
+- [x] **Desktop target** — In scope for layout (column count, spacing). Pointer-specific
+  interactions (hover states, right-click context menu) are deferred to a later iteration.
 
 ---
 

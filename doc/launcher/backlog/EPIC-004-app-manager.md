@@ -2,17 +2,21 @@
 
 ## Summary
 
-A full-screen list of all installed apps that the user can browse, search, sort, and act on.
-It serves as the escape hatch when an app cannot be found on the home screen grid.
+A full-screen diagnostic view for power users and developers. It lists all installed apps with
+technical metadata (target SDK, package name, last updated) and allows launching, inspecting, and
+uninstalling apps.
+
+> **Important context:** The launcher grid always shows *all* installed and launchable apps — there
+> is no hidden app drawer distinction. App Manager is therefore not needed for app discovery; it is
+> a developer-oriented tool surfacing technical detail.
 
 ---
 
 ## Goals
 
-- Let the user find any installed app regardless of grid placement
-- Provide enough metadata to be useful for power users (target SDK, last updated, package name)
+- Provide a technical inventory of all installed apps for dev/debug purposes
 - Allow launching, inspecting, and uninstalling apps from one place
-- Be fast enough to use as an app drawer alternative
+- Surface metadata not shown on the grid (target SDK, package name, last updated)
 
 ---
 
@@ -56,13 +60,18 @@ Direction toggles between ↑ ascending and ↓ descending by tapping the active
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] App Manager is currently modal (replaces the grid) — should it be a bottom sheet or overlay instead?
-- [ ] There is no way to add an app from App Manager directly to the grid or bar — is that in scope?
-- [ ] `AppRow` implementation not reviewed — what metadata is shown per row?
-- [ ] Sort state is not persisted — resets each time App Manager is opened
-- [ ] Should the app count be shown in the header?
+- [x] **Presentation** — Stays full-screen modal (replaces the grid). This is appropriate for a
+  developer/power-user tool that is not part of normal daily flow.
+- [x] **Add to grid/bar from here** — Not in scope. The grid already shows all installed apps;
+  there is no need to "add" from App Manager. The feature is view/search/launch/uninstall only.
+- [x] **Sort state persistence** — Sort state resets on each open. Acceptable given the dev-tool
+  nature of the screen; sort is cheap to re-apply.
+- [x] **App count in header** — Out of scope for now; the sticky header shows search and filter
+  controls. A count badge may be added later without a design decision.
+- [ ] **`AppRow` metadata audit** — `AppRow` implementation not yet reviewed. Needs a code-review
+  pass to document exactly which fields are shown per row.
 
 ---
 

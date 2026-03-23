@@ -68,13 +68,18 @@ message GridCell {
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] Where should the `.proto` schema file live — `core` module or `launcher` module?
-- [ ] Should the DataStore be exposed as an injectable dependency (via Koin) or owned entirely by `AppsRepositoryImpl`?
-- [ ] Is cross-device/cloud backup in scope (Android Auto Backup, Google Drive backup)?
-- [ ] What is the migration story for users who have already customised their layout in-memory (none currently, but relevant post-launch)?
-- [ ] Should there be an export/import mechanism for layout backups?
+- [x] **Proto schema location** — `:launcher` module. The schema is specific to launcher layout
+  and has no current reason to be shared with other modules.
+- [x] **DataStore DI** — Exposed as a **Koin singleton**. `AppsRepositoryImpl` receives the
+  `DataStore<GridData>` via constructor injection. This makes the store testable and mockable
+  independently of the repository.
+- [x] **Cloud backup** — Android Auto Backup (passive). The DataStore file is included in Auto
+  Backup by default. No active Drive sync or user-visible backup management is in scope.
+- [x] **Migration story** — Not applicable pre-launch (no persisted state exists yet). Post-launch
+  migrations will use DataStore's built-in `DataMigration` API. No bespoke migration tooling needed.
+- [x] **Export/import** — Not in scope.
 
 ---
 

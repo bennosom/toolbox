@@ -56,11 +56,15 @@ scroll), and between the grid and the quick access bar.
 
 ---
 
-## Open questions / gaps
+## Decisions
 
-- [ ] Should there be a visual "drag mode" indicator beyond the narrowed page width?
-- [ ] What is the expected behaviour when dropping on an already-dragging-over cell mid-animation?
-- [ ] Should users be able to drag to an empty page (page creation via drag)?
+- [x] **Drag mode indicator** — The existing narrowed-page-width animation is sufficient. No
+  additional overlay or banner is needed.
+- [x] **Drop on mid-animation cell** — Last-writer-wins: whatever cell the pointer is over when
+  `onDrop` fires is the target. In-flight animations complete visually after the state update.
+- [x] **Page creation via drag** — Dragging past the last page auto-creates a new empty page (already
+  reflected in the `dragMode` logic that appends a trailing empty page). On drop into that page the
+  extra placeholder is committed as a real page; on cancel it is discarded.
 
 ---
 
