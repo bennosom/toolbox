@@ -40,11 +40,15 @@ scroll), and between the grid and the quick access bar.
 | Quick bar slot | Grid cell | `moveBarToGrid` |
 | Quick bar slot | Quick bar slot | `moveBarToBar` |
 
-### Swap behaviour
-- Grid → Grid: **swap** — source and destination cells exchange apps (neither is lost)
-- Grid → Bar: displaced bar app moves to the source grid cell
-- Bar → Grid: displaced grid app inserts into bar at origin index
-- Bar → Bar: **shift** — apps slide to make room (no swap)
+### Drop behaviour
+- Grid → Grid (empty cell): app moves to the target cell; source cell becomes empty.
+- Grid → Grid (occupied cell): **rejected** — no effect, app snaps back to its origin cell. The
+  user must free the target cell first (remove or relocate the occupying item) before the drop
+  is accepted. This applies to any occupant: app, folder, or widget span.
+- Grid → Bar: displaced bar app moves to the source grid cell.
+- Bar → Grid (empty cell): app moves to the target cell; bar slot becomes empty.
+- Bar → Grid (occupied cell): **rejected** — same no-op rule as Grid → Grid above.
+- Bar → Bar: **shift** — apps slide to make room (no swap).
 
 ---
 
@@ -69,6 +73,10 @@ scroll), and between the grid and the quick access bar.
 - [x] **Page creation via drag** — Dragging past the last page auto-creates a new empty page (already
   reflected in the `dragMode` logic that appends a trailing empty page). On drop into that page the
   extra placeholder is committed as a real page; on cancel it is discarded.
+- [x] **No-swap on occupied cells** — Dropping an app (from grid or bar) onto an occupied cell has
+  no effect; the dragged app snaps back to its origin. There is no automatic swap or displacement.
+  The user must manually clear the target cell before the drop is accepted. This keeps moves
+  explicit and avoids accidental overwriting.
 
 ---
 
