@@ -9,4 +9,7 @@ data class GridData(
    val rows: Int,
    val grid: List<Map<Cell, AppId?>>?,
    val bar: List<AppId>?,
+   val hasUserGrid: Boolean = false,
+   val hasUserBar: Boolean = false,
+   val barSlots: Int = 0,
 )

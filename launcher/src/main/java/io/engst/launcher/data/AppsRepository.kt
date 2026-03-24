@@ -8,8 +8,12 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.os.UserHandle
+import androidx.datastore.core.DataStore
 import io.engst.core.Logging
 import io.engst.core.scopedLogger
+import io.engst.launcher.data.proto.GridDataProto
+import io.engst.launcher.data.store.toGridData
+import io.engst.launcher.data.store.toProto
 import io.engst.launcher.model.App
 import io.engst.launcher.model.Cell
 import io.engst.launcher.model.Grid
@@ -20,14 +24,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 val defaultGridSpec = GridSpec(4, 4)
@@ -45,8 +46,10 @@ interface AppsRepository {
    fun resetDefaults(spec: GridSpec = defaultGridSpec)
 }
 
-class AppsRepositoryImpl(private val context: Context) :
-   AppsRepository, Logging by scopedLogger("AppsRepositoryImpl") {
+class AppsRepositoryImpl(
+   private val context: Context,
+   private val dataStore: DataStore<GridDataProto>,
+) : AppsRepository, Logging by scopedLogger("AppsRepositoryImpl") {
 
    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
    private val callbackThread =
@@ -95,7 +98,7 @@ class AppsRepositoryImpl(private val context: Context) :
                   user: UserHandle?,
                   replacing: Boolean,
                ) {
-                  logDebug("LauncherApps.onPackagesUnavailable") { "packageNames=$packageNames" }
+                  logDebug("onPackagesUnavailable") { "packageNames=$packageNames" }
                   update()
                }
             }
@@ -119,25 +122,24 @@ class AppsRepositoryImpl(private val context: Context) :
          awaitClose {
             callbackHandler.post {
                logInfo { "teardown ${Thread.currentThread().name}" }
-
-               // Unregister configuration callbacks
                runCatching { context.unregisterComponentCallbacks(componentCallbacks) }
-
-               // Unregister package callbacks on the handler thread
                runCatching { launcherApps.unregisterCallback(appsCallback) }
-
                callbackThread.quitSafely()
             }
          }
       }
-         .map { it.sortedBy { it.componentName } }
+         .map { it.sortedBy { app -> app.componentName } }
          .shareIn(scope, SharingStarted.WhileSubscribed(5000), 1)
 
-   private val dataStore = MutableStateFlow<GridData>(defaultGridData)
+   private val storedGridData: Flow<GridData> =
+      dataStore.data.map { proto ->
+         logDebug { "dataStore read: cols=${proto.cols} rows=${proto.rows}" }
+         proto.toGridData()
+      }
 
    override val grid: Flow<Grid> =
       installedApps
-         .combine(dataStore) { apps, store ->
+         .combine(storedGridData) { apps, store ->
             val spec = GridSpec(store.cols, store.rows)
 
             val barApps =
@@ -154,78 +156,7 @@ class AppsRepositoryImpl(private val context: Context) :
                if (store.grid == null) {
                   buildGrid(apps.filterNot { barAppIds.contains(it.id) }, spec)
                } else {
-                  // Build pages from store, then append any newly installed apps not in the store
-                  val orderedCells =
-                     (0 until spec.cols).flatMap { col ->
-                        (0 until spec.rows).map { row -> Cell(col, row) }
-                     }
-
-                  // Start with pages as LinkedHashMaps to preserve insertion order
-                  val pages =
-                     store.grid
-                        .map { page ->
-                           val linked = LinkedHashMap<Cell, App?>()
-                           page.forEach { (cell, appId) ->
-                              val app = apps.find { it.componentName.flattenToString() == appId }
-                              linked[cell] = app
-                           }
-                           linked
-                        }
-                        .toMutableList()
-
-                  val pageCapacity = orderedCells.size
-
-                  // Normalize existing pages to ensure they contain all cells in the expected order
-                  fun normalizePage(index: Int) {
-                     val existing = pages[index]
-                     if (
-                        existing.size == pageCapacity &&
-                        orderedCells.all { existing.containsKey(it) }
-                     )
-                        return
-                     val normalized = LinkedHashMap<Cell, App?>(pageCapacity)
-                     orderedCells.forEach { c -> normalized[c] = existing[c] }
-                     pages[index] = normalized
-                  }
-                  for (i in pages.indices) normalizePage(i)
-
-                  // Collect app IDs already placed on the grid (exclude nulls)
-                  val placedIds = buildSet {
-                     pages.forEach { page -> page.values.forEach { app -> app?.let { add(it.id) } } }
-                  }
-
-                  // Determine apps to append: installed apps not in bar and not already placed
-                  val toAppend =
-                     apps.filterNot { barAppIds.contains(it.id) || placedIds.contains(it.id) }
-
-                  // Find the last occupied global cell index across all pages
-                  var lastOccupied = -1
-                  pages.forEachIndexed { pageIndex, page ->
-                     orderedCells.forEachIndexed { cellIndex, cell ->
-                        if (page[cell] != null) {
-                           lastOccupied = pageIndex * pageCapacity + cellIndex
-                        }
-                     }
-                  }
-
-                  // Append missing apps after the last occupied cell, creating new pages as needed
-                  var nextIndex = lastOccupied + 1
-                  toAppend.forEach { app ->
-                     val pageIndex = nextIndex / pageCapacity
-                     val cellIndex = nextIndex % pageCapacity
-                     while (pageIndex >= pages.size) {
-                        // Create a new empty page with all cells preset to null
-                        val newPage = LinkedHashMap<Cell, App?>(pageCapacity)
-                        orderedCells.forEach { c -> newPage[c] = null }
-                        pages.add(newPage)
-                     }
-                     normalizePage(pageIndex)
-                     val targetCell = orderedCells[cellIndex]
-                     pages[pageIndex][targetCell] = app
-                     nextIndex++
-                  }
-
-                  pages.map { it.toMap() }
+                  buildGridFromStore(store.grid, apps, barAppIds, spec)
                }
 
             Grid(spec = spec, bar = barApps, grid = gridApps)
@@ -235,30 +166,105 @@ class AppsRepositoryImpl(private val context: Context) :
    override fun update(grid: Grid) {
       logDebug { "updateGrid: $grid" }
       scope.launch {
-         dataStore.update {
-            GridData(
-               cols = grid.spec.cols,
-               rows = grid.spec.rows,
-               bar = grid.bar.map { it.componentName.flattenToString() },
-               grid =
-                  grid.grid.map { page ->
-                     page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }
-                        .toMap()
-                  },
-            )
-         }
+         val data = GridData(
+            cols = grid.spec.cols,
+            rows = grid.spec.rows,
+            bar = grid.bar.map { it.componentName.flattenToString() },
+            grid = grid.grid.map { page ->
+               page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }.toMap()
+            },
+            hasUserGrid = true,
+            hasUserBar = true,
+            barSlots = 0,
+         )
+         logDebug { "persisting grid update to DataStore" }
+         dataStore.updateData { data.toProto() }
       }
    }
 
    override fun setGridSpec(spec: GridSpec) {
       logDebug { "updateSpec: $spec" }
-      // TODO: add merge strategy to keep order as much as possible
       resetDefaults(spec)
    }
 
    override fun resetDefaults(spec: GridSpec) {
       logDebug { "resetDefaults: $spec" }
-      scope.launch { dataStore.update { defaultGridData.copy(cols = spec.cols, rows = spec.rows) } }
+      scope.launch {
+         val data = defaultGridData.copy(cols = spec.cols, rows = spec.rows)
+         logDebug { "persisting resetDefaults to DataStore" }
+         dataStore.updateData { data.toProto() }
+      }
+   }
+
+   private fun buildGridFromStore(
+      storeGrid: List<Map<Cell, AppId?>>,
+      apps: List<App>,
+      barAppIds: List<String>,
+      spec: GridSpec,
+   ): List<Map<Cell, App?>> {
+      val orderedCells =
+         (0 until spec.cols).flatMap { col ->
+            (0 until spec.rows).map { row -> Cell(col, row) }
+         }
+
+      val pages =
+         storeGrid
+            .map { page ->
+               val linked = LinkedHashMap<Cell, App?>()
+               page.forEach { (cell, appId) ->
+                  val app = apps.find { it.componentName.flattenToString() == appId }
+                  linked[cell] = app
+               }
+               linked
+            }
+            .toMutableList()
+
+      val pageCapacity = orderedCells.size
+
+      fun normalizePage(index: Int) {
+         val existing = pages[index]
+         if (
+            existing.size == pageCapacity &&
+            orderedCells.all { existing.containsKey(it) }
+         ) return
+         val normalized = LinkedHashMap<Cell, App?>(pageCapacity)
+         orderedCells.forEach { c -> normalized[c] = existing[c] }
+         pages[index] = normalized
+      }
+      for (i in pages.indices) normalizePage(i)
+
+      val placedIds = buildSet {
+         pages.forEach { page -> page.values.forEach { app -> app?.let { add(it.id) } } }
+      }
+
+      val toAppend =
+         apps.filterNot { barAppIds.contains(it.id) || placedIds.contains(it.id) }
+
+      var lastOccupied = -1
+      pages.forEachIndexed { pageIndex, page ->
+         orderedCells.forEachIndexed { cellIndex, cell ->
+            if (page[cell] != null) {
+               lastOccupied = pageIndex * pageCapacity + cellIndex
+            }
+         }
+      }
+
+      var nextIndex = lastOccupied + 1
+      toAppend.forEach { app ->
+         val pageIndex = nextIndex / pageCapacity
+         val cellIndex = nextIndex % pageCapacity
+         while (pageIndex >= pages.size) {
+            val newPage = LinkedHashMap<Cell, App?>(pageCapacity)
+            orderedCells.forEach { c -> newPage[c] = null }
+            pages.add(newPage)
+         }
+         normalizePage(pageIndex)
+         val targetCell = orderedCells[cellIndex]
+         pages[pageIndex][targetCell] = app
+         nextIndex++
+      }
+
+      return pages.map { it.toMap() }
    }
 
    private fun buildBar(apps: List<App>): List<App> {
@@ -292,9 +298,6 @@ class AppsRepositoryImpl(private val context: Context) :
          context.resolveDefaultMessengerApp()?.flattenToString(),
          context.resolveDefaultBrowserApp()?.flattenToString(),
       )
-
-   private fun <T : Any> Flow<T>.asStateFlow(initial: T) =
-      stateIn(scope, SharingStarted.WhileSubscribed(5000L), initial)
 
    private fun <T : Any> Flow<T>.asSharedFlow(replay: Int = 1) =
       shareIn(scope, SharingStarted.WhileSubscribed(5000L), replay)

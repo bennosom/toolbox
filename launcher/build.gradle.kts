@@ -2,6 +2,7 @@ plugins {
    alias(libs.plugins.android.application)
    alias(libs.plugins.kotlin.android)
    alias(libs.plugins.kotlin.compose)
+   alias(libs.plugins.protobuf)
 }
 
     android {
@@ -41,6 +42,21 @@ plugins {
        }
     }
 
+protobuf {
+   protoc {
+      artifact = libs.protobuf.protoc.get().toString()
+   }
+   generateProtoTasks {
+      all().forEach { task ->
+         task.builtins {
+            register("java") {
+               option("lite")
+            }
+         }
+      }
+   }
+}
+
   dependencies {
      implementation(project(":core"))
 
@@ -58,6 +74,8 @@ plugins {
      implementation(libs.koin.android)
      implementation(libs.koin.androidx.compose)
      implementation(libs.androidx.lifecycle.viewmodel.ktx)
+     implementation(libs.androidx.datastore)
+     implementation(libs.protobuf.javalite)
 
      testImplementation(libs.junit)
      testImplementation(libs.robolectric)
