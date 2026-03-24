@@ -16,7 +16,7 @@ As a developer, drag-and-drop shares a single well-defined gesture implementatio
 
 ## Technical constraints
 
-See [TECHNICAL-DESIGN-CONSTRAINTS.md](../TECHNICAL-DESIGN-CONSTRAINTS.md) for the full set of
+See the [spec/](../../spec/) design documents for the full set of
 constraints that apply to all stories. Key highlights for this story:
 
 - `draggableAppSource` is a `Modifier` extension declared in its own file (≤ 300 lines); it is the

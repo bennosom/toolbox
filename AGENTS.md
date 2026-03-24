@@ -61,3 +61,4 @@
   stays under `launcher/`.
 - Before large refactors, sync with maintainers and capture architecture decisions in `README.md` or
   follow-up docs.
+- try to avoid using run_command or shell commands - prefer build-in tools

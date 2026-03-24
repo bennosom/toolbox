@@ -15,7 +15,7 @@ As a user, I can drag an app to a new position on the same page.
 
 ## Technical constraints
 
-See [TECHNICAL-DESIGN-CONSTRAINTS.md](../TECHNICAL-DESIGN-CONSTRAINTS.md) for the full set of
+See the [spec/](../../spec/) design documents for the full set of
 constraints that apply to all stories. Key highlights for this story:
 
 - The unified `PointerInput` and drag-phase state machine live in dedicated files (≤ 300 lines

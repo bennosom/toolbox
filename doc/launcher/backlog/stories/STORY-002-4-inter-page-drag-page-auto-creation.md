@@ -15,7 +15,7 @@ As a user, I can drag an app to a different page or create a new page by draggin
 
 ## Technical constraints
 
-See [TECHNICAL-DESIGN-CONSTRAINTS.md](../TECHNICAL-DESIGN-CONSTRAINTS.md) for the full set of
+See the [spec/](../../spec/) design documents for the full set of
 constraints that apply to all stories. Key highlights for this story:
 
 - Edge-scroll / page-hop logic is a self-contained component (≤ 300 lines) that emits navigation

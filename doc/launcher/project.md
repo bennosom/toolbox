@@ -64,13 +64,6 @@ with it.
 doc/launcher/
 ├── project.md          ← this file — vision and goals
 ├── backlog/            ← epics and stories
-│   ├── EPIC-001-app-grid.md
-│   ├── EPIC-002-app-reordering.md
-│   ├── EPIC-003-quick-bar.md
-│   ├── EPIC-004-app-manager.md
-│   ├── EPIC-005-customisation.md
-│   ├── EPIC-006-adaptive-layouts.md
-│   └── EPIC-007-data-persistence.md
 └── spec/               ← ADRs and technical design documents
 ```
 

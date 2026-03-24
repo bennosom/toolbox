@@ -15,8 +15,21 @@ This directory contains technical documentation for the Launcher:
 | Type | Pattern | Example |
 |------|---------|---------|
 | ADR | `ADR-NNN-short-title.md` | `ADR-001-jetpack-datastore.md` |
-| Design doc | `DESIGN-NNN-short-title.md` | `DESIGN-001-drag-and-drop.md` |
+| Design doc | `DESIGN-NNN-short-title.md` | `DESIGN-001-dependency-injection.md` |
 
 ## Index
 
-_No documents yet._
+| Document | Topic |
+|----------|-------|
+| [DESIGN-001](DESIGN-001-dependency-injection.md) | Dependency Injection |
+| [DESIGN-002](DESIGN-002-architecture.md) | Architecture (MVI) |
+| [DESIGN-003](DESIGN-003-file-size.md) | File Size Limit |
+| [DESIGN-004](DESIGN-004-compose-conventions.md) | Compose Conventions |
+| [DESIGN-005](DESIGN-005-code-quality.md) | Code Quality (SOLID) |
+| [DESIGN-006](DESIGN-006-error-handling.md) | Error Handling |
+| [DESIGN-007](DESIGN-007-logging.md) | Logging |
+| [DESIGN-008](DESIGN-008-testing.md) | Testing |
+| [DESIGN-009](DESIGN-009-cold-start.md) | Cold Start |
+| [DESIGN-010](DESIGN-010-resource-efficiency.md) | Resource Efficiency |
+| [DESIGN-011](DESIGN-011-ui-thread.md) | UI Thread |
+| [DESIGN-012](DESIGN-012-progress-and-cancellation.md) | Progress & Cancellation |

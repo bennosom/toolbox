@@ -15,7 +15,7 @@ As a user, I can drag apps between the grid and the quick access bar in both dir
 
 ## Technical constraints
 
-See [TECHNICAL-DESIGN-CONSTRAINTS.md](../TECHNICAL-DESIGN-CONSTRAINTS.md) for the full set of
+See the [spec/](../../spec/) design documents for the full set of
 constraints that apply to all stories. Key highlights for this story:
 
 - `moveGridToBar`, `moveBarToGrid`, and `moveBarToBar` are pure functions on immutable value
