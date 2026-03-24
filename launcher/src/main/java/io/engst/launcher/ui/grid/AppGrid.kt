@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -113,14 +114,19 @@ fun AppGrid(
                     .fillMaxWidth()
                     .onPlaced { coords -> pagerContainerCoordinates.value = coords },
             ) {
+                val pagerContentPadding = remember(state.isInDragMode) {
+                    if (state.isInDragMode) {
+                        PaddingValues(horizontal = SPACING_DP, vertical = SPACING_DP)
+                    } else {
+                        PaddingValues(vertical = SPACING_DP)
+                    }
+                }
                 HorizontalPager(
                     state = pagerState,
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                        horizontal = SPACING_DP,
-                        vertical = SPACING_DP,
-                    ),
+                    contentPadding = pagerContentPadding,
+                    beyondViewportPageCount = 1,
                     pageSize = pageSize,
-                    snapPosition = SnapPosition.Center,
+                    snapPosition = if (state.isInDragMode) SnapPosition.Center else SnapPosition.Start,
                     modifier = Modifier.fillMaxSize(),
                 ) { pageIndex ->
                     AppGridPage(
@@ -152,9 +158,8 @@ fun AppGrid(
             }
 
             if (pagerState.pageCount > 0) {
-                PageIndicator(
-                    count = pagerState.pageCount,
-                    currentIndex = pagerState.currentPage,
+                PagerPageIndicator(
+                    pagerState = pagerState,
                     modifier = Modifier.fillMaxWidth().height(SPACING_DP),
                 )
             }
@@ -194,6 +199,19 @@ fun AppGrid(
             onColorWallpaperRequested = { color -> viewModel.onIntent(GridIntent.ColorWallpaperRequested(color.toArgb())) },
         )
     }
+}
+
+/** Isolates [PagerState.currentPage] reads so the parent does not recompose on page changes. */
+@Composable
+private fun PagerPageIndicator(
+    pagerState: androidx.compose.foundation.pager.PagerState,
+    modifier: Modifier = Modifier,
+) {
+    PageIndicator(
+        count = pagerState.pageCount,
+        currentIndex = pagerState.currentPage,
+        modifier = modifier,
+    )
 }
 
 private fun buildPageSize(isDragMode: Boolean, spacingPx: Int): PageSize =
