@@ -12,6 +12,7 @@ import io.engst.launcher.ui.grid.drag.DragPhase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -23,11 +24,14 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests covering the ViewModel state machine for STORY-002-1 through STORY-002-4.
  * Focuses on drag phase transitions and menu state management.
  */
+@RunWith(RobolectricTestRunner::class)
 @OptIn(ExperimentalCoroutinesApi::class)
 class GridViewModelTest {
 
@@ -280,13 +284,13 @@ class GridViewModelTest {
     // ---------------------------------------------------------------------------
 
     private class FakeAppsRepository : AppsRepository {
-        private val gridFlow = MutableStateFlow<Grid>(Grid(GridSpec(2, 2), emptyList(), emptyList()))
+        private val gridFlow = MutableSharedFlow<Grid>(replay = 1)
         var updateCallCount = 0
 
         override val installedApps: Flow<List<App>> = MutableStateFlow(emptyList())
         override val grid: Flow<Grid> = gridFlow
 
-        fun emitGrid(grid: Grid) { gridFlow.value = grid }
+        fun emitGrid(grid: Grid) { gridFlow.tryEmit(grid) }
 
         override fun setGridSpec(spec: GridSpec) {}
         override fun update(grid: Grid) { updateCallCount++ }

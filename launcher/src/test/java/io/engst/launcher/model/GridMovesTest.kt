@@ -6,11 +6,13 @@ import android.graphics.drawable.ColorDrawable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for every acceptance criterion in STORY-002-1, STORY-002-2, and STORY-002-3.
- * Pure Kotlin — no Android runtime required.
  */
+@RunWith(RobolectricTestRunner::class)
 class GridMovesTest {
 
     // ---------------------------------------------------------------------------
@@ -234,9 +236,11 @@ class GridMovesTest {
 
     @Test
     fun applyDragMove_routes_bar_to_bar_correctly() {
-        val grid = singlePageGrid().copy(bar = listOf(appA, appB))
-        val result = grid.applyDragMove("A", DragDestination.QuickBarSlot(1))
-        assertEquals(listOf(appB, appA), result.bar)
+        val appE = makeApp("E")
+        val appF = makeApp("F")
+        val grid = singlePageGrid().copy(bar = listOf(appE, appF))
+        val result = grid.applyDragMove("E", DragDestination.QuickBarSlot(1))
+        assertEquals(listOf(appF, appE), result.bar)
     }
 
     @Test

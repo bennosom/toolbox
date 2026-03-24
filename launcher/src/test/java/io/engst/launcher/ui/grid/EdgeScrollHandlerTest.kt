@@ -3,11 +3,14 @@ package io.engst.launcher.ui.grid
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Unit tests for edge-scroll detection — covers STORY-002-4 AC:
  * "Holding the dragged item at a page edge triggers navigation to the adjacent page."
  */
+@RunWith(RobolectricTestRunner::class)
 class EdgeScrollHandlerTest {
 
     private val pagerWidth = 1000f
