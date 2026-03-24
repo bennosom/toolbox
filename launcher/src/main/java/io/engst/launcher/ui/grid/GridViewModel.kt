@@ -57,7 +57,8 @@ class GridViewModel(
             }
             is GridIntent.AppMenuDismissed -> _uiState.update { it.copy(activeAppMenuIdentifier = null) }
             is GridIntent.GridMenuRequested -> _uiState.update {
-                it.copy(isGridMenuVisible = true, gridMenuOffset = intent.offset, activeAppMenuIdentifier = null)
+                if (it.activeAppMenuIdentifier != null) it
+                else it.copy(isGridMenuVisible = true, gridMenuOffset = intent.offset)
             }
             is GridIntent.GridMenuDismissed -> _uiState.update { it.copy(isGridMenuVisible = false) }
             is GridIntent.GridSpecChangeRequested -> {

@@ -7,7 +7,6 @@ import android.content.Intent
 import android.view.View
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropSource
-import androidx.compose.foundation.gestures.awaitDragOrCancellation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
@@ -15,10 +14,10 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.consumeDownChange
-import androidx.compose.ui.input.pointer.consumePositionChange
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.core.graphics.drawable.toBitmap
@@ -28,9 +27,12 @@ import io.engst.launcher.model.App
 private val logger = scopedLogger("DraggableAppSource")
 
 /**
- * Shared modifier that adds long-press → drag gesture handling to any app tile.
- * Encapsulates ClipData construction, drag shadow rendering, and gesture routing.
- * Used by both grid tiles and quick-bar icons to eliminate duplicated gesture code.
+ * Touch interaction contract for app tiles:
+ * 1. **Tap** → launch app
+ * 2. **Long press** → show app context menu
+ * 3. **Long press + drag past [ViewConfiguration.touchSlop]** → dismiss menu, start grid drag
+ *    (grid shrinks to reveal page edges for cross-page dragging)
+ * 4. **Release** → commit or cancel drag, grid returns to normal scale
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.draggableAppSource(
@@ -64,40 +66,65 @@ fun Modifier.draggableAppSource(
                 try {
                     val longPress = awaitLongPressOrCancellation(down.id)
                     if (longPress == null) {
-                        val up = waitForUpOrCancellation()
-                        if (up != null) {
-                            val duration = up.uptimeMillis - down.uptimeMillis
-                            val movement = (up.position - down.position).getDistance()
-                            val isTap = duration < viewConfiguration.longPressTimeoutMillis &&
-                                movement < viewConfiguration.touchSlop
-                            if (isTap) {
-                                up.consumeDownChange()
-                                logger.logDebug { "tap detected appId=${app.id}" }
-                                onTap()
-                            }
-                        }
+                        handleTapCandidate(down, viewConfiguration, app, onTap)
                         return@awaitEachGesture
                     }
 
                     logger.logDebug { "long press detected appId=${app.id}" }
+                    longPress.consumeDownChange()
                     onLongPress()
 
-                    val pointerId = longPress.id
-                    val dragChange = awaitDragOrCancellation(pointerId)
-                    if (dragChange == null || dragChange.changedToUp()) {
-                        dragChange?.consumeDownChange()
-                        return@awaitEachGesture
+                    val dragDetected = awaitDragPastSlop(longPress, viewConfiguration)
+                    if (dragDetected) {
+                        logger.logDebug { "drag started appId=${app.id}" }
+                        onDragStarted()
+                        startTransfer(transferData)
                     }
-
-                    logger.logDebug { "drag started appId=${app.id}" }
-                    onDragStarted()
-                    dragChange.consumeDownChange()
-                    dragChange.consumePositionChange()
-                    startTransfer(transferData)
                 } finally {
                     onGestureCompleted()
                 }
             }
         },
     )
+}
+
+/**
+ * After a long press, wait until the pointer moves past [ViewConfiguration.touchSlop]
+ * or is released. Returns `true` if drag threshold was exceeded.
+ */
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awaitDragPastSlop(
+    longPress: PointerInputChange,
+    viewConfiguration: ViewConfiguration,
+): Boolean {
+    val slopSquared = viewConfiguration.touchSlop * viewConfiguration.touchSlop
+    val anchor = longPress.position
+    while (true) {
+        val event = awaitPointerEvent()
+        val change = event.changes.firstOrNull { it.id == longPress.id } ?: return false
+        if (change.changedToUp()) {
+            change.consumeDownChange()
+            return false
+        }
+        val distanceSquared = (change.position - anchor).let { it.x * it.x + it.y * it.y }
+        if (distanceSquared > slopSquared) {
+            change.consumeDownChange()
+            return true
+        }
+    }
+}
+
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.handleTapCandidate(
+    down: PointerInputChange,
+    viewConfiguration: ViewConfiguration,
+    app: App,
+    onTap: () -> Unit,
+) {
+    val up = waitForUpOrCancellation() ?: return
+    val duration = up.uptimeMillis - down.uptimeMillis
+    val movement = (up.position - down.position).getDistance()
+    if (duration < viewConfiguration.longPressTimeoutMillis && movement < viewConfiguration.touchSlop) {
+        up.consumeDownChange()
+        logger.logDebug { "tap detected appId=${app.id}" }
+        onTap()
+    }
 }

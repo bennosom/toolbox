@@ -1,5 +1,6 @@
 package io.engst.launcher.ui.grid
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Box
@@ -54,6 +55,11 @@ fun AppGrid(
     onSetDefaultLauncher: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    BackHandler(enabled = state.isInDragMode) {
+        viewModel.onIntent(GridIntent.DragDropped)
+    }
+
     val context = LocalContext.current
     val density = LocalDensity.current
     val viewConfiguration = LocalViewConfiguration.current
