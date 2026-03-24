@@ -24,9 +24,7 @@ class GridDataProtoSerializerTest {
         val proto = GridDataProto.newBuilder()
             .setCols(3)
             .setRows(5)
-            .setHasUserGrid(true)
-            .setHasUserBar(true)
-            .setBarSlots(4)
+            .setPopulated(true)
             .addBar("pkg.X/cls.X")
             .addGrid(
                 GridPageProto.newBuilder()

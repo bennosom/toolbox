@@ -102,10 +102,8 @@ A proper wallpaper browsing and selection UI accessible from the long-press cust
   is **4 seconds** (Material 3 default). The layout reset to disk is deferred until the snackbar
   times out or is explicitly dismissed; an Undo tap within that window reverts the state without
   writing to DataStore.
-- [x] **barSlots scope** — `barSlots` is a **global** preference: one value for all grid specs.
-  Changing the grid spec (cols/rows) does not change the bar slot count. `barSlots` is persisted as
-  a top-level field in `GridData` (owned by EPIC-007). The current coupling to `spec.rows` is a
-  temporary default until this field is implemented.
+- [x] **Bar capacity** — Always equal to `spec.cols`. Not a user-configurable setting. When the
+  grid column count changes, bar capacity changes automatically to match.
 - [x] **Settings surface** — Options stay in the long-press context menu dropdown. No dedicated
   Settings screen is planned. The menu may grow but stays in place.
 

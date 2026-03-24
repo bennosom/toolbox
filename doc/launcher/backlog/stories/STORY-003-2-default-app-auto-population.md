@@ -8,7 +8,7 @@ As a user, the bar is pre-filled with my default phone, messaging, and browser a
 
 ## Acceptance criteria
 
-- On first run (`has_user_bar = false`), `resolveDefaultApps` queries the system for the default dialler, SMS, and browser apps
+- On first run (`populated = false`), `resolveDefaultApps` queries the system for the default dialler, SMS, and browser apps
 - Any default that is not installed is silently skipped — no placeholder, no crash
-- Resolved apps are written to DataStore and `has_user_bar` is set to `true` so auto-population never re-runs
+- Resolved apps are written to DataStore together with the full grid+bar layout and `populated` is set to `true` so auto-population never re-runs
 - Resolution runs off the main thread

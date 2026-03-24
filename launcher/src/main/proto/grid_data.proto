@@ -8,11 +8,9 @@ message GridDataProto {
   int32 rows = 2;
   repeated GridPageProto grid = 3;
   repeated string bar = 4;
-  bool has_user_grid = 5;
-  bool has_user_bar = 6;
-  int32 bar_slots = 7;
-  int32 dark_mode_preference = 8;
-  bool bar_hidden = 9;
+  bool populated = 5;
+  int32 dark_mode_preference = 6;
+  bool bar_hidden = 7;
 }
 
 message GridPageProto {

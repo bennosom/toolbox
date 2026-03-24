@@ -10,7 +10,6 @@ import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.asImageBitmap
@@ -66,7 +65,8 @@ fun Modifier.draggableAppSource(
                 try {
                     val longPress = awaitLongPressOrCancellation(down.id)
                     if (longPress == null) {
-                        handleTapCandidate(down, viewConfiguration, app, onTap)
+                        logger.logDebug { "tap detected appId=${app.id}" }
+                        onTap()
                         return@awaitEachGesture
                     }
 
@@ -113,18 +113,3 @@ private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awa
     }
 }
 
-private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.handleTapCandidate(
-    down: PointerInputChange,
-    viewConfiguration: ViewConfiguration,
-    app: App,
-    onTap: () -> Unit,
-) {
-    val up = waitForUpOrCancellation() ?: return
-    val duration = up.uptimeMillis - down.uptimeMillis
-    val movement = (up.position - down.position).getDistance()
-    if (duration < viewConfiguration.longPressTimeoutMillis && movement < viewConfiguration.touchSlop) {
-        up.consumeDownChange()
-        logger.logDebug { "tap detected appId=${app.id}" }
-        onTap()
-    }
-}

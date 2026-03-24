@@ -17,63 +17,74 @@ memory and is lost on every restart.
 
 ---
 
-## Current implementation (in-memory only)
+## Current implementation
 
 | Component | Detail |
 |-----------|--------|
-| Store | `MutableStateFlow<GridData>` inside `AppsRepositoryImpl` |
-| Schema | `GridData(cols, rows, grid: List<Map<Cell, AppId?>>?, bar: List<AppId>?)` |
-| Lifetime | Process lifetime only — reset to `defaultGridData` on every cold start |
-| Null semantics | `grid == null` or `bar == null` means "use auto-populated defaults" |
-
-The in-memory model is already serialisation-friendly: it uses only primitive types and
-`ComponentName.flattenToString()` as stable app identifiers.
+| Store | Jetpack DataStore (Protobuf) via Koin singleton |
+| Schema | `GridDataProto` — cols, rows, grid pages, bar entries, populated flag, preferences |
+| Read path | `AppsRepository.grid` combines DataStore with installed apps Flow |
+| Write path | Fire-and-forget coroutine on `Dispatchers.Default` scope |
 
 ---
 
-## Planned: Jetpack DataStore (Protobuf)
+## Population lifecycle
 
-### Rationale over SharedPreferences
-- Type-safe schema via Protocol Buffers
-- Coroutine/Flow-native API — fits the existing reactive architecture
-- Handles concurrent writes safely
-- Schema evolution support (field additions without migration pain)
+### First launch (`populated = false`)
+1. DataStore returns default instance (`populated = false`, empty grid/bar)
+2. Repository auto-populates bar from system default apps (phone, messenger, browser)
+3. Repository builds grid from all installed apps sorted by `ComponentName`, column-by-column
+4. Resulting layout is persisted with `populated = true`
 
-### Proposed schema (draft)
+### Subsequent launches (`populated = true`)
+1. DataStore returns persisted grid and bar layout
+2. Repository resolves stored `ComponentName` strings against current installed apps
+3. Uninstalled apps become vacant cells (no shifting)
+4. Newly installed apps are appended after the last occupied cell
+
+### App changes during runtime
+- `LauncherApps.Callback` fires on package add/remove/change
+- Repository immediately recomputes the grid and persists the updated layout
+- UI recomposes via the `grid` Flow
+
+### App changes between launches
+- On cold start the repository combines persisted layout with current installed apps
+- This naturally handles apps installed/uninstalled while the launcher process was dead
+- The reconciliation runs asynchronously on `Dispatchers.Default`
+
+### Reset defaults
+- `resetDefaults()` writes `populated = false` to DataStore
+- Next emission from `grid` Flow triggers re-population from scratch
+
+---
+
+## Proto schema
 
 ```proto
-message GridData {
+message GridDataProto {
   int32 cols = 1;
   int32 rows = 2;
-  repeated GridPage grid = 3;     // absent = auto-populate
-  repeated string bar = 4;        // absent = auto-populate; values = ComponentName strings
-  bool has_user_grid = 5;         // true once the user has committed a custom grid layout
-  bool has_user_bar = 6;          // true once the user has committed a custom bar layout
-  int32 bar_slots = 7;            // global bar slot count (see EPIC-005); 0 = use cols as default
+  repeated GridPageProto grid = 3;
+  repeated string bar = 4;
+  bool populated = 5;
+  int32 dark_mode_preference = 6;
+  bool bar_hidden = 7;
 }
 
-message GridPage {
-  repeated GridCell cells = 1;
+message GridPageProto {
+  repeated GridCellProto cells = 1;
 }
 
-message GridCell {
+message GridCellProto {
   int32 col = 1;
   int32 row = 2;
-  string app_id = 3;  // ComponentName.flattenToString(); empty = vacant cell
+  string app_id = 3;
 }
 ```
 
-> **Null vs. empty semantics:** Protobuf `repeated` fields cannot distinguish "absent" from "empty
-> list" at the wire level. The `has_user_grid` / `has_user_bar` boolean sentinels solve this:
-> when `false`, the implementation ignores the `grid` / `bar` fields and auto-populates defaults
-> regardless of their contents. `resetDefaults()` sets both booleans to `false` (it does not need
-> to clear the repeated fields).
-
-### Migration path
-1. Add `datastore-proto` dependency and generate `GridData` Protobuf class
-2. Replace `MutableStateFlow<GridData>` with `DataStore<GridData>` in `AppsRepositoryImpl`
-3. Map existing `io.engst.launcher.data.GridData` Kotlin class to/from the Protobuf type
-4. Provide a `resetDefaults()` that writes the null-grid sentinel to the store
+> **`populated` flag:** Proto3 `repeated` fields cannot distinguish "absent" from "empty list".
+> The single `populated` boolean solves this: when `false`, the `grid` and `bar` fields are
+> ignored and defaults are auto-populated. When `true`, the persisted layout is used as-is.
 
 ---
 
@@ -86,14 +97,9 @@ message GridCell {
   independently of the repository.
 - [x] **Cloud backup** — Android Auto Backup (passive). The DataStore file is included in Auto
   Backup by default. No active Drive sync or user-visible backup management is in scope.
-- [x] **Migration story** — Not applicable pre-launch (no persisted state exists yet). Post-launch
-  migrations will use DataStore's built-in `DataMigration` API. No bespoke migration tooling needed.
-- [x] **Null vs. empty sentinel** — `has_user_grid` and `has_user_bar` boolean fields distinguish
-  "never customised" from "deliberately empty." When either flag is `false` the corresponding
-  repeated field is ignored and defaults are auto-populated. `resetDefaults()` clears these flags.
-- [x] **barSlots field** — `bar_slots: int32` (field 7). `0` means "use `cols` as the default."
-  This is a global value; changing the grid spec does not change `bar_slots`. Owned by this schema
-  and exposed via EPIC-005 customisation settings.
+- [x] **Single populated flag** — Replaces the earlier `has_user_grid` / `has_user_bar` pair.
+  Grid and bar are always populated together — there is no state where one is customised and the
+  other is not.
 - [x] **Export/import** — Not in scope.
 
 ---

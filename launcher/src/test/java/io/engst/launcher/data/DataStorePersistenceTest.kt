@@ -7,7 +7,6 @@ import io.engst.launcher.data.store.GridDataProtoSerializer
 import io.engst.launcher.data.store.toGridData
 import io.engst.launcher.data.store.toProto
 import io.engst.launcher.model.Cell
-import io.engst.launcher.model.GridSpec
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -56,8 +55,7 @@ class DataStorePersistenceTest {
         assertEquals(4, data.rows)
         assertNull(data.grid)
         assertNull(data.bar)
-        assertFalse(data.hasUserGrid)
-        assertFalse(data.hasUserBar)
+        assertFalse(data.populated)
     }
 
     // ---------------------------------------------------------------------------
@@ -73,37 +71,32 @@ class DataStorePersistenceTest {
                 mapOf(Cell(0, 0) to "pkg.A/cls.A", Cell(1, 0) to null),
             ),
             bar = listOf("pkg.X/cls.X"),
-            hasUserGrid = true,
-            hasUserBar = true,
-            barSlots = 5,
+            populated = true,
         )
         dataStore.updateData { gridData.toProto() }
 
-        // Simulate cold-start by reading the persisted bytes directly
         val restored = GridDataProto.parseFrom(dataStoreFile.inputStream()).toGridData()
 
         assertEquals(3, restored.cols)
         assertEquals(5, restored.rows)
-        assertTrue(restored.hasUserGrid)
-        assertTrue(restored.hasUserBar)
+        assertTrue(restored.populated)
         assertEquals(listOf("pkg.X/cls.X"), restored.bar)
         assertEquals("pkg.A/cls.A", restored.grid?.get(0)?.get(Cell(0, 0)))
         assertNull(restored.grid?.get(0)?.get(Cell(1, 0)))
     }
 
     // ---------------------------------------------------------------------------
-    // STORY-007-2: has_user_grid = false → auto-populate
+    // STORY-007-2: populated = false → auto-populate
     // ---------------------------------------------------------------------------
 
     @Test
-    fun has_user_grid_false_returns_null_grid_for_auto_populate() = runTest {
+    fun not_populated_returns_null_grid_and_bar_for_auto_populate() = runTest {
         val gridData = GridData(
             cols = 4,
             rows = 4,
             grid = null,
             bar = null,
-            hasUserGrid = false,
-            hasUserBar = false,
+            populated = false,
         )
         dataStore.updateData { gridData.toProto() }
 
@@ -114,11 +107,11 @@ class DataStorePersistenceTest {
     }
 
     // ---------------------------------------------------------------------------
-    // STORY-007-3: Write path — mutations persist
+    // STORY-007-3: Write path — mutations persist with populated = true
     // ---------------------------------------------------------------------------
 
     @Test
-    fun update_sets_has_user_grid_and_has_user_bar_to_true() = runTest {
+    fun update_sets_populated_to_true() = runTest {
         val gridData = GridData(
             cols = 4,
             rows = 4,
@@ -126,30 +119,27 @@ class DataStorePersistenceTest {
                 mapOf(Cell(0, 0) to "pkg.A/cls.A", Cell(1, 0) to null),
             ),
             bar = listOf("pkg.B/cls.B"),
-            hasUserGrid = true,
-            hasUserBar = true,
+            populated = true,
         )
         dataStore.updateData { gridData.toProto() }
 
         val restored = dataStore.data.first().toGridData()
 
-        assertTrue(restored.hasUserGrid)
-        assertTrue(restored.hasUserBar)
+        assertTrue(restored.populated)
     }
 
     // ---------------------------------------------------------------------------
-    // STORY-007-3: resetDefaults sets sentinels to false
+    // STORY-007-3: resetDefaults sets populated to false
     // ---------------------------------------------------------------------------
 
     @Test
-    fun reset_defaults_sets_sentinel_flags_to_false() = runTest {
+    fun reset_defaults_sets_populated_to_false() = runTest {
         val customised = GridData(
             cols = 3,
             rows = 3,
             grid = listOf(mapOf(Cell(0, 0) to "pkg.A/cls.A")),
             bar = listOf("pkg.B/cls.B"),
-            hasUserGrid = true,
-            hasUserBar = true,
+            populated = true,
         )
         dataStore.updateData { customised.toProto() }
 
@@ -158,8 +148,7 @@ class DataStorePersistenceTest {
 
         val restored = dataStore.data.first().toGridData()
 
-        assertFalse(restored.hasUserGrid)
-        assertFalse(restored.hasUserBar)
+        assertFalse(restored.populated)
         assertNull(restored.grid)
         assertNull(restored.bar)
         assertEquals(4, restored.cols)
@@ -184,8 +173,7 @@ class DataStorePersistenceTest {
                 ),
             ),
             bar = emptyList(),
-            hasUserGrid = true,
-            hasUserBar = true,
+            populated = true,
         )
         dataStore.updateData { gridData.toProto() }
 
@@ -218,8 +206,7 @@ class DataStorePersistenceTest {
                 mapOf(Cell(0, 0) to "pkg.A/cls.A", Cell(1, 0) to "pkg.B/cls.B"),
             ),
             bar = emptyList(),
-            hasUserGrid = true,
-            hasUserBar = true,
+            populated = true,
         )
         dataStore.updateData { gridData.toProto() }
 
@@ -236,18 +223,17 @@ class DataStorePersistenceTest {
     }
 
     // ---------------------------------------------------------------------------
-    // STORY-007-4: has_user_grid remains true after app install/uninstall
+    // STORY-007-4: populated stays true after app install/uninstall
     // ---------------------------------------------------------------------------
 
     @Test
-    fun has_user_grid_stays_true_after_install_event() = runTest {
+    fun populated_stays_true_after_install_event() = runTest {
         val gridData = GridData(
             cols = 2,
             rows = 2,
             grid = listOf(mapOf(Cell(0, 0) to "pkg.A/cls.A")),
             bar = emptyList(),
-            hasUserGrid = true,
-            hasUserBar = true,
+            populated = true,
         )
         dataStore.updateData { gridData.toProto() }
 
@@ -257,6 +243,6 @@ class DataStorePersistenceTest {
         dataStore.updateData { afterInstall.toProto() }
 
         val restored = dataStore.data.first().toGridData()
-        assertTrue(restored.hasUserGrid)
+        assertTrue(restored.populated)
     }
 }

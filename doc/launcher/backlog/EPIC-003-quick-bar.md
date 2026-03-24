@@ -21,7 +21,7 @@ small set of frequently used apps. It is always visible regardless of which grid
 |--------|--------|
 | Component | `Row` inside `AppGrid` (lower section of the composable) |
 | Height | 96 dp |
-| Capacity | Defaults to `spec.rows` slots (e.g. 4 for a 4×4 grid) |
+| Capacity | Always equal to `spec.cols` (e.g. 4 for a 4×4 grid) |
 | Default population | System default phone, messenger, and browser apps (resolved via `ResolveDefaultApps`) |
 | Item layout | `AppIcon` only (no label) — 60 dp icons centred in the row |
 | Interaction | Tap to launch; long-press → context menu or drag |
@@ -41,9 +41,9 @@ Only apps actually installed are included; missing defaults are silently skipped
 
 ## Decisions
 
-- [x] **Bar capacity** — Decoupled from `spec.rows`. Bar slot count is an independent user-configurable
-  value exposed in the customisation settings. The current coupling to `spec.rows` is a temporary
-  default and should be replaced with a dedicated `barSlots` setting (see EPIC-005).
+- [x] **Bar capacity** — Always bound to `spec.cols` (column count) so the bar visually aligns with
+  the grid above it. Not a user-configurable setting. When the grid spec changes, bar capacity
+  changes automatically.
 - [x] **Empty slot placeholders** — Not supported. Removing an app closes the gap immediately;
   remaining icons are horizontally centred. No placeholder concept exists in the bar.
 - [x] **Max bar slots** — No hard cap. When icons exceed the bar width the bar scrolls horizontally;
@@ -57,4 +57,4 @@ Only apps actually installed are included; missing defaults are silently skipped
 
 - EPIC-001 App Grid
 - EPIC-002 App Reordering
-- EPIC-005 Customisation (bar slot count)
+- EPIC-005 Customisation

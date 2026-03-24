@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 
 val defaultGridSpec = GridSpec(4, 4)
 val defaultGridData =
-   GridData(cols = defaultGridSpec.cols, rows = defaultGridSpec.rows, bar = null, grid = null)
+   GridData(cols = defaultGridSpec.cols, rows = defaultGridSpec.rows, bar = null, grid = null, populated = false)
 
 interface AppsRepository {
    val installedApps: Flow<List<App>>
@@ -156,26 +156,33 @@ class AppsRepositoryImpl(
       installedApps
          .combine(storedGridData) { apps, store ->
             val spec = GridSpec(store.cols, store.rows)
-            val barCapacity = if (store.barSlots > 0) store.barSlots else spec.cols
+            val barCapacity = spec.cols
 
             val barApps =
-               if (store.bar == null) {
+               if (!store.populated) {
                   buildBar(apps).take(barCapacity)
                } else {
-                  store.bar.mapNotNull { appId ->
+                  store.bar.orEmpty().mapNotNull { appId ->
                      apps.find { it.componentName.flattenToString() == appId }
                   }
                }
             val barAppIds = barApps.map { it.id }
 
             val gridApps =
-               if (store.grid == null) {
+               if (!store.populated) {
                   buildGrid(apps.filterNot { barAppIds.contains(it.id) }, spec)
                } else {
-                  buildGridFromStore(store.grid, apps, barAppIds, spec)
+                  buildGridFromStore(store.grid.orEmpty(), apps, barAppIds, spec)
                }
 
-            Grid(spec = spec, bar = barApps, grid = gridApps).collapseEmptyPages()
+            val grid = Grid(spec = spec, bar = barApps, grid = gridApps).collapseEmptyPages()
+
+            if (!store.populated) {
+               logDebug { "first population — persisting initial layout" }
+               persistGrid(grid, store)
+            }
+
+            grid
          }
          .asSharedFlow()
 
@@ -184,24 +191,32 @@ class AppsRepositoryImpl(
       scope.launch {
          dataStore.updateData { current ->
             val existing = current.toGridData()
-            val data = GridData(
-               cols = grid.spec.cols,
-               rows = grid.spec.rows,
-               bar = grid.bar.map { it.componentName.flattenToString() },
-               grid = grid.grid.map { page ->
-                  page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }.toMap()
-               },
-               hasUserGrid = true,
-               hasUserBar = true,
-               barSlots = existing.barSlots,
-               darkModePreference = existing.darkModePreference,
-               isBarVisible = existing.isBarVisible,
-            )
             logDebug { "persisting grid update to DataStore" }
-            data.toProto()
+            gridToData(grid, existing).toProto()
          }
       }
    }
+
+   private fun persistGrid(grid: Grid, existing: GridData) {
+      scope.launch {
+         dataStore.updateData {
+            logDebug { "persisting grid to DataStore" }
+            gridToData(grid, existing).toProto()
+         }
+      }
+   }
+
+   private fun gridToData(grid: Grid, existing: GridData): GridData = GridData(
+      cols = grid.spec.cols,
+      rows = grid.spec.rows,
+      bar = grid.bar.map { it.componentName.flattenToString() },
+      grid = grid.grid.map { page ->
+         page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }.toMap()
+      },
+      populated = true,
+      darkModePreference = existing.darkModePreference,
+      isBarVisible = existing.isBarVisible,
+   )
 
    override fun setGridSpec(spec: GridSpec) {
       logDebug { "updateSpec: $spec" }
@@ -216,6 +231,7 @@ class AppsRepositoryImpl(
             val data = defaultGridData.copy(
                cols = spec.cols,
                rows = spec.rows,
+               populated = false,
                darkModePreference = existing.darkModePreference,
                isBarVisible = existing.isBarVisible,
             )
