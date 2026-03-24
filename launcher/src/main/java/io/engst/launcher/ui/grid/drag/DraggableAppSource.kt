@@ -12,6 +12,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUp
 import androidx.compose.ui.input.pointer.consumeDownChange
@@ -101,28 +102,33 @@ private sealed interface GestureResult {
 }
 
 /**
- * Waits for one of three outcomes:
- * - **Tap**: pointer lifted before long-press timeout without exceeding touch slop
- * - **Swipe**: pointer moved past touch slop before long-press timeout
- * - **LongPress**: pointer stayed within slop until the long-press timeout fired
+ * Waits for one of three outcomes after a pointer down:
+ * - **Tap**: pointer lifted before long-press timeout and within touch-slop
+ * - **Swipe**: pointer moved past touch-slop, or another handler consumed the gesture
+ * - **LongPress**: pointer stayed within slop and unconsumed until the long-press timeout fired
+ *
+ * Uses [PointerEventPass.Final] so the pager's scroll handler processes events first on
+ * [PointerEventPass.Main]. The additional distance check ensures the tile yields the gesture
+ * *before* the pager starts scrolling, preventing a visible jump on the first drag frame.
  */
 private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awaitLongPressOrSwipeOrTap(
     down: PointerInputChange,
     viewConfiguration: ViewConfiguration,
 ): GestureResult {
-    val slopSquared = viewConfiguration.touchSlop * viewConfiguration.touchSlop
     val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+    val slopSquared = viewConfiguration.touchSlop * viewConfiguration.touchSlop
     val anchor = down.position
     while (true) {
-        val event = awaitPointerEvent()
+        val event = awaitPointerEvent(PointerEventPass.Final)
         val change = event.changes.firstOrNull { it.id == down.id } ?: return GestureResult.Swipe
+        if (change.isConsumed) return GestureResult.Swipe
+        val distanceSq = (change.position - anchor).let { it.x * it.x + it.y * it.y }
+        if (distanceSq > slopSquared) return GestureResult.Swipe
         if (change.changedToUp()) {
             change.consumeDownChange()
             return GestureResult.Tap(change)
         }
         val elapsed = change.uptimeMillis - down.uptimeMillis
-        val distanceSq = (change.position - anchor).let { it.x * it.x + it.y * it.y }
-        if (distanceSq > slopSquared) return GestureResult.Swipe
         if (elapsed >= longPressTimeout) return GestureResult.LongPress(change)
     }
 }
