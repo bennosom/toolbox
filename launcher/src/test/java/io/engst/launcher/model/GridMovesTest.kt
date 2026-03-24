@@ -249,4 +249,133 @@ class GridMovesTest {
         val result = grid.applyDragMove("UNKNOWN", DragDestination.GridCell(0, Cell(1, 1)))
         assertSame(grid, result)
     }
+
+    // ---------------------------------------------------------------------------
+    // moveGridToGrid — boundary branches
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun moveGridToGrid_is_no_op_when_source_page_index_out_of_bounds() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(99, Cell(0, 0))
+        val destination = DragDestination.GridCell(0, Cell(1, 1))
+
+        val result = grid.moveGridToGrid(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveGridToGrid_is_no_op_when_destination_page_index_out_of_bounds() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(0, Cell(0, 0))
+        val destination = DragDestination.GridCell(99, Cell(1, 1))
+
+        val result = grid.moveGridToGrid(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveGridToGrid_is_no_op_when_source_cell_is_empty() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(0, Cell(1, 1)) // null cell
+        val destination = DragDestination.GridCell(0, Cell(0, 0))
+
+        val result = grid.moveGridToGrid(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    // ---------------------------------------------------------------------------
+    // moveBarToGrid — boundary branches
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun moveBarToGrid_is_no_op_when_bar_index_out_of_bounds() {
+        val grid = singlePageGrid().copy(bar = listOf(appD))
+        val origin = AppLocation.QuickBarSlot(99)
+        val destination = DragDestination.GridCell(0, Cell(1, 1))
+
+        val result = grid.moveBarToGrid(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveBarToGrid_is_no_op_when_destination_page_out_of_bounds() {
+        val grid = singlePageGrid().copy(bar = listOf(appD))
+        val origin = AppLocation.QuickBarSlot(0)
+        val destination = DragDestination.GridCell(99, Cell(1, 1))
+
+        val result = grid.moveBarToGrid(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    // ---------------------------------------------------------------------------
+    // moveGridToBar — boundary branches
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun moveGridToBar_is_no_op_when_source_page_out_of_bounds() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(99, Cell(0, 0))
+        val destination = DragDestination.QuickBarSlot(0)
+
+        val result = grid.moveGridToBar(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveGridToBar_is_no_op_when_source_cell_is_empty() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(0, Cell(1, 1)) // null cell
+        val destination = DragDestination.QuickBarSlot(0)
+
+        val result = grid.moveGridToBar(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveGridToBar_appends_to_end_when_bar_slot_exceeds_size() {
+        val grid = singlePageGrid()
+        val origin = AppLocation.GridCell(0, Cell(0, 0))
+        val destination = DragDestination.QuickBarSlot(99)
+
+        val result = grid.moveGridToBar(origin, destination)
+
+        assertEquals(listOf(appA), result.bar)
+        assertEquals(null, result.grid[0][Cell(0, 0)])
+    }
+
+    // ---------------------------------------------------------------------------
+    // moveBarToBar — boundary branches
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun moveBarToBar_is_no_op_when_origin_index_out_of_bounds() {
+        val grid = singlePageGrid().copy(bar = listOf(appA, appB))
+        val origin = AppLocation.QuickBarSlot(99)
+        val destination = DragDestination.QuickBarSlot(0)
+
+        val result = grid.moveBarToBar(origin, destination)
+
+        assertSame(grid, result)
+    }
+
+    @Test
+    fun moveBarToBar_coerces_destination_to_valid_range() {
+        val appE = makeApp("E")
+        val appF = makeApp("F")
+        val grid = singlePageGrid().copy(bar = listOf(appE, appF))
+        val origin = AppLocation.QuickBarSlot(0)
+        val destination = DragDestination.QuickBarSlot(99) // coerced to end
+
+        val result = grid.moveBarToBar(origin, destination)
+
+        assertEquals(listOf(appF, appE), result.bar)
+    }
 }

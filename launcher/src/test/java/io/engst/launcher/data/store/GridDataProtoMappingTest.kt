@@ -234,6 +234,140 @@ class GridDataProtoMappingTest {
     }
 
     // ---------------------------------------------------------------------------
+    // toGridData — cols/rows fallback to defaults when zero
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun proto_with_zero_cols_falls_back_to_default() {
+        val proto = GridDataProto.newBuilder()
+            .setCols(0)
+            .setRows(0)
+            .build()
+
+        val data = proto.toGridData()
+
+        assertEquals(4, data.cols)
+        assertEquals(4, data.rows)
+    }
+
+    // ---------------------------------------------------------------------------
+    // toGridData — multi-page grid
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun proto_with_multiple_pages_maps_all_pages() {
+        val proto = GridDataProto.newBuilder()
+            .setCols(2)
+            .setRows(1)
+            .setHasUserGrid(true)
+            .addGrid(
+                GridPageProto.newBuilder()
+                    .addCells(cell(0, 0, "pkg.A/cls.A"))
+                    .addCells(cell(1, 0, "pkg.B/cls.B"))
+            )
+            .addGrid(
+                GridPageProto.newBuilder()
+                    .addCells(cell(0, 0, "pkg.C/cls.C"))
+                    .addCells(cell(1, 0, ""))
+            )
+            .build()
+
+        val data = proto.toGridData()
+
+        assertEquals(2, data.grid?.size)
+        assertEquals("pkg.A/cls.A", data.grid?.get(0)?.get(Cell(0, 0)))
+        assertEquals("pkg.B/cls.B", data.grid?.get(0)?.get(Cell(1, 0)))
+        assertEquals("pkg.C/cls.C", data.grid?.get(1)?.get(Cell(0, 0)))
+        assertNull(data.grid?.get(1)?.get(Cell(1, 0)))
+    }
+
+    // ---------------------------------------------------------------------------
+    // toGridData — bar filters empty strings
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun proto_with_user_bar_filters_empty_entries() {
+        val proto = GridDataProto.newBuilder()
+            .setCols(4)
+            .setRows(4)
+            .setHasUserBar(true)
+            .addBar("pkg.Phone/cls.Phone")
+            .addBar("")
+            .addBar("pkg.Browser/cls.Browser")
+            .build()
+
+        val data = proto.toGridData()
+
+        assertEquals(listOf("pkg.Phone/cls.Phone", "pkg.Browser/cls.Browser"), data.bar)
+    }
+
+    // ---------------------------------------------------------------------------
+    // Round-trip: multi-page grid with null cells
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun round_trip_preserves_multi_page_grid_with_null_cells() {
+        val original = GridData(
+            cols = 2,
+            rows = 2,
+            grid = listOf(
+                mapOf(Cell(0, 0) to "pkg.A/cls.A", Cell(1, 0) to null, Cell(0, 1) to null, Cell(1, 1) to null),
+                mapOf(Cell(0, 0) to null, Cell(1, 0) to "pkg.B/cls.B", Cell(0, 1) to null, Cell(1, 1) to null),
+            ),
+            bar = emptyList(),
+            hasUserGrid = true,
+            hasUserBar = true,
+        )
+
+        val roundTripped = original.toProto().toGridData()
+
+        assertEquals(2, roundTripped.grid?.size)
+        assertEquals("pkg.A/cls.A", roundTripped.grid?.get(0)?.get(Cell(0, 0)))
+        assertNull(roundTripped.grid?.get(0)?.get(Cell(1, 0)))
+        assertEquals("pkg.B/cls.B", roundTripped.grid?.get(1)?.get(Cell(1, 0)))
+    }
+
+    // ---------------------------------------------------------------------------
+    // toProto — null grid produces no pages
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun toProto_null_grid_produces_empty_page_list() {
+        val data = GridData(
+            cols = 4,
+            rows = 4,
+            grid = null,
+            bar = null,
+            hasUserGrid = false,
+            hasUserBar = false,
+        )
+
+        val proto = data.toProto()
+
+        assertEquals(0, proto.gridCount)
+    }
+
+    // ---------------------------------------------------------------------------
+    // toProto — null bar produces no bar entries
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun toProto_null_bar_produces_empty_bar_list() {
+        val data = GridData(
+            cols = 4,
+            rows = 4,
+            grid = null,
+            bar = null,
+            hasUserGrid = false,
+            hasUserBar = false,
+        )
+
+        val proto = data.toProto()
+
+        assertEquals(0, proto.barCount)
+    }
+
+    // ---------------------------------------------------------------------------
     // Helper
     // ---------------------------------------------------------------------------
 
