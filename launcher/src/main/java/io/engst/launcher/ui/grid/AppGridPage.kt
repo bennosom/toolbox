@@ -25,7 +25,7 @@ import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.ViewConfiguration
+import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
@@ -127,22 +127,24 @@ fun AppGridPage(
                             .animateItem(),
                     )
                 } else {
-                    AppTileContainer(
-                        app = app,
-                        iconSizeDp = iconSizeDp,
-                        draggingAppId = draggingAppId,
-                        activeAppMenuIdentifier = activeAppMenuIdentifier,
-                        density = density,
-                        viewConfiguration = viewConfiguration,
-                        screenInfo = screenInfo,
-                        onDragStarted = onDragStarted,
-                        onAppTapped = onAppTapped,
-                        onAppMenuRequested = onAppMenuRequested,
-                        onAppMenuDismissed = onAppMenuDismissed,
-                        onAppDetails = onAppDetails,
-                        onAppRemoval = onAppRemoval,
-                        onShortcutLaunch = onShortcutLaunch,
-                    )
+                    Box(modifier = Modifier.animateItem()) {
+                        AppTileContainer(
+                            app = app,
+                            iconSizeDp = iconSizeDp,
+                            draggingAppId = draggingAppId,
+                            activeAppMenuIdentifier = activeAppMenuIdentifier,
+                            density = density,
+                            viewConfiguration = viewConfiguration,
+                            screenInfo = screenInfo,
+                            onDragStarted = onDragStarted,
+                            onAppTapped = onAppTapped,
+                            onAppMenuRequested = onAppMenuRequested,
+                            onAppMenuDismissed = onAppMenuDismissed,
+                            onAppDetails = onAppDetails,
+                            onAppRemoval = onAppRemoval,
+                            onShortcutLaunch = onShortcutLaunch,
+                        )
+                    }
                 }
             }
         }
@@ -171,7 +173,6 @@ private fun AppTileContainer(
         modifier = Modifier
             .fillMaxSize()
             .clip(MaterialTheme.shapes.small)
-            .animateItem()
             .draggableAppSource(
                 app = app,
                 iconSizeDp = iconSizeDp,

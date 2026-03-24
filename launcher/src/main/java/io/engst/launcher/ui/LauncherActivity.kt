@@ -35,8 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.engst.core.Logging
+import io.engst.core.apps.launchActivity
 import io.engst.core.scopedLogger
 import io.engst.launcher.core.isDefaultLauncher
+import io.engst.launcher.core.launchAppDetails
+import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchDefaultAppSettings
 import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.ui.grid.AppGrid
