@@ -8,7 +8,7 @@ As a user, I see a row of my most-used apps pinned to the bottom of the screen o
 
 ## Acceptance criteria
 
-- `QuickBar` is a fixed 96 dp `Row` pinned below the grid pager; it remains visible regardless of which page is active
+- `QuickBar` height matches the grid cell height so that bar icons and grid icons occupy equally sized touch targets; the bar remains pinned below the grid pager and visible regardless of which page is active
 - Slots render `AppIcon` only — no label, 60 dp icons centred in the row
 - Tapping a slot launches the corresponding app
 - When the bar visibility toggle is off (EPIC-005), `QuickBar` is not composed and the grid takes the full height

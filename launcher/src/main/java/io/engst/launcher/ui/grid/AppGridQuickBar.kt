@@ -38,12 +38,11 @@ import io.engst.launcher.model.App
 import io.engst.launcher.ui.grid.drag.draggableAppSource
 import io.engst.launcher.ui.shared.AppIcon
 
-private const val QUICK_BAR_HEIGHT_DP = 96
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppGridQuickBar(
     apps: List<App>,
+    cellHeight: Dp,
     iconSizeDp: Dp,
     spacing: Dp,
     draggingAppId: String?,
@@ -94,7 +93,7 @@ fun AppGridQuickBar(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .height(QUICK_BAR_HEIGHT_DP.dp)
+            .height(cellHeight)
             .onPlaced { coordinates -> barCoordinates.value = coordinates }
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { it.mimeTypes().contains("text/vnd.android.intent") },

@@ -5,10 +5,16 @@ package io.engst.launcher.ui.grid
 import android.content.pm.ShortcutInfo
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ripple
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -17,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +51,7 @@ fun AppGridPage(
     pageIndex: Int,
     page: Map<Cell, App?>,
     columns: Int,
+    cellHeight: Dp,
     iconSizeDp: Dp,
     spacing: Dp,
     draggingAppId: String?,
@@ -122,12 +130,18 @@ fun AppGridPage(
                 if (app == null) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .height(cellHeight)
                             .clip(MaterialTheme.shapes.small)
                             .animateItem(),
                     )
                 } else {
-                    Box(modifier = Modifier.animateItem()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(cellHeight)
+                            .animateItem(),
+                    ) {
                         AppTileContainer(
                             app = app,
                             iconSizeDp = iconSizeDp,
@@ -151,6 +165,8 @@ fun AppGridPage(
     }
 }
 
+
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AppTileContainer(
@@ -169,10 +185,15 @@ private fun AppTileContainer(
     onAppRemoval: (App) -> Unit,
     onShortcutLaunch: (ShortcutInfo) -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val scope = rememberCoroutineScope()
+    var pressInteraction: PressInteraction.Press? = remember { null }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .clip(MaterialTheme.shapes.small)
+            .indication(interactionSource, ripple())
             .draggableAppSource(
                 app = app,
                 iconSizeDp = iconSizeDp,
@@ -181,6 +202,17 @@ private fun AppTileContainer(
                 onTap = { onAppTapped(app) },
                 onLongPress = { onAppMenuRequested(app.id) },
                 onDragStarted = { onDragStarted(app.id) },
+                onPressStarted = {
+                    val press = PressInteraction.Press(androidx.compose.ui.geometry.Offset.Zero)
+                    pressInteraction = press
+                    scope.launch { interactionSource.emit(press) }
+                },
+                onGestureCompleted = {
+                    pressInteraction?.let { press ->
+                        scope.launch { interactionSource.emit(PressInteraction.Release(press)) }
+                    }
+                    pressInteraction = null
+                },
             ),
         contentAlignment = Alignment.Center,
     ) {
