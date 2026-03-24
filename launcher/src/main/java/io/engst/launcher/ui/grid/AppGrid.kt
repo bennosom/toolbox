@@ -41,6 +41,7 @@ import io.engst.launcher.core.launchShortcut
 import io.engst.launcher.model.GridSpec
 import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.rememberScreenInfo
+import androidx.compose.ui.tooling.preview.Preview
 import org.koin.androidx.compose.koinViewModel
 
 private val ICON_SIZE_DP = 60.dp
@@ -53,6 +54,7 @@ fun AppGrid(
     viewModel: GridViewModel = koinViewModel(),
     onNavigateToAppManager: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
+    onShowResetDefaultsSnackbar: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -73,6 +75,7 @@ fun AppGrid(
                 context = context,
                 onNavigateToAppManager = onNavigateToAppManager,
                 onSetDefaultLauncher = onSetDefaultLauncher,
+                onShowResetDefaultsSnackbar = onShowResetDefaultsSnackbar,
             )
         }
     }
@@ -104,7 +107,11 @@ fun AppGrid(
                         }
                     },
                 )
-            },
+            }
+            .homeScreenSwipeGestures(
+                onSwipeDown = { viewModel.onIntent(GridIntent.SwipeDownDetected) },
+                onSwipeUp = { viewModel.onIntent(GridIntent.SwipeUpDetected) },
+            ),
     ) {
         Column(Modifier.fillMaxSize()) {
             val pageSize = remember(state.isInDragMode, spacingPx) {
@@ -169,7 +176,8 @@ fun AppGrid(
 
             Spacer(Modifier.size(SPACING_DP))
 
-            AppGridQuickBar(
+            if (state.isBarVisible) {
+                AppGridQuickBar(
                 apps = displayGrid.bar,
                 iconSizeDp = ICON_SIZE_DP,
                 spacing = SPACING_DP,
@@ -188,6 +196,7 @@ fun AppGrid(
                 onAppRemoval = { app -> viewModel.onIntent(GridIntent.AppRemovalRequested(app)) },
                 onShortcutLaunch = { shortcut -> viewModel.onIntent(GridIntent.ShortcutLaunchRequested(shortcut)) },
             )
+            }
         }
 
         AppGridMenu(
@@ -195,10 +204,15 @@ fun AppGrid(
             offset = state.gridMenuOffset,
             isDefaultLauncher = isDefaultLauncher,
             currentGridSpec = displayGrid?.spec ?: GridSpec(4, 4),
+            darkModePreference = state.darkModePreference,
+            isBarVisible = state.isBarVisible,
             onDismissRequest = { viewModel.onIntent(GridIntent.GridMenuDismissed) },
             onAppsListRequested = { viewModel.onIntent(GridIntent.AppManagerOpenRequested) },
             onSetDefaultLauncherRequested = { viewModel.onIntent(GridIntent.DefaultLauncherSettingsOpenRequested) },
+            onResetDefaultsRequested = { viewModel.onIntent(GridIntent.ResetDefaultsRequested) },
             onGridSpecSelected = { spec -> viewModel.onIntent(GridIntent.GridSpecChangeRequested(spec)) },
+            onDarkModeChanged = { pref -> viewModel.onIntent(GridIntent.DarkModeChanged(pref)) },
+            onBarVisibilityChanged = { visible -> viewModel.onIntent(GridIntent.BarVisibilityChanged(visible)) },
         )
     }
 }
@@ -222,11 +236,13 @@ private fun buildPageSize(isDragMode: Boolean, spacingPx: Int): PageSize =
             if (isDragMode) availableSpace - spacingPx * 2 else availableSpace
     }
 
+@Suppress("DEPRECATION")
 private fun handleEffect(
     effect: GridEffect,
     context: android.content.Context,
     onNavigateToAppManager: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
+    onShowResetDefaultsSnackbar: () -> Unit,
 ) {
     when (effect) {
         is GridEffect.LaunchApp -> context.launchActivity(effect.app.componentName)
@@ -236,5 +252,29 @@ private fun handleEffect(
         is GridEffect.OpenAppManager -> onNavigateToAppManager()
         is GridEffect.OpenDefaultLauncherSettings -> onSetDefaultLauncher()
         is GridEffect.NavigateToPage -> { /* handled by pager directly in AppGridPage */ }
+        is GridEffect.ShowResetDefaultsSnackbar -> onShowResetDefaultsSnackbar()
+        is GridEffect.ExpandNotificationsPanel -> expandNotificationsPanel(context)
+        is GridEffect.OpenSearch -> { /* stub — wired to EPIC-008 search when implemented */ }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 640)
+@Composable
+private fun AppGridLoadingPreview() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(modifier = Modifier.size(108.dp))
+    }
+}
+
+@Suppress("DEPRECATION")
+private fun expandNotificationsPanel(context: android.content.Context) {
+    try {
+        val statusBarService = context.getSystemService("statusbar")
+        statusBarService?.javaClass
+            ?.getMethod("expandNotificationsPanel")
+            ?.invoke(statusBarService)
+    } catch (e: Exception) {
+        io.engst.core.scopedLogger("AppGrid")
+            .logWarn { "expandNotificationsPanel failed: ${e.message}" }
     }
 }

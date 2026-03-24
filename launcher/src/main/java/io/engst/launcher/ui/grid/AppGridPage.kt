@@ -23,14 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
-import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
+import io.engst.launcher.ui.shared.localOffsetOf
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.tooling.preview.Preview
 import io.engst.launcher.model.App
 import io.engst.launcher.model.Cell
 import io.engst.launcher.ui.grid.drag.draggableAppSource
@@ -198,12 +198,17 @@ private fun AppTileContainer(
     }
 }
 
-private fun LayoutCoordinates.localOffsetOf(event: DragAndDropEvent): Offset? {
-    if (!isAttached) return null
-    val root = findRootCoordinates()
-    if (!root.isAttached) return null
-    val drag = event.toAndroidDragEvent()
-    return localPositionOf(root, Offset(drag.x, drag.y))
+@Preview(showBackground = true, widthDp = 360, heightDp = 480)
+@Composable
+private fun AppGridPagePreview() {
+    // Preview requires real App instances with Drawable icons.
+    // Shown here for structural verification — replace with stub Apps in IDE.
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(4),
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        // Empty 4×4 grid placeholder for preview
+    }
 }
 
 private fun LazyGridState.findCellAt(localOffset: Offset, cells: List<Cell>): Cell? {

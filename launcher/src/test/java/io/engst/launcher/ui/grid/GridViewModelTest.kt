@@ -522,11 +522,16 @@ class GridViewModelTest {
 
         override val installedApps: Flow<List<App>> = MutableStateFlow(emptyList())
         override val grid: Flow<Grid> = gridFlow
+        override val darkModePreference: Flow<io.engst.launcher.ui.shared.DarkModePreference> =
+            MutableStateFlow(io.engst.launcher.ui.shared.DarkModePreference.SYSTEM)
+        override val isBarVisible: Flow<Boolean> = MutableStateFlow(true)
 
         fun emitGrid(grid: Grid) { gridFlow.tryEmit(grid) }
 
         override fun setGridSpec(spec: GridSpec) { lastSetSpec = spec }
         override fun update(grid: Grid) { updateCallCount++ }
         override fun resetDefaults(spec: GridSpec) {}
+        override fun setDarkModePreference(preference: io.engst.launcher.ui.shared.DarkModePreference) {}
+        override fun setBarVisible(visible: Boolean) {}
     }
 }

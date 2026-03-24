@@ -12,13 +12,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Rocket
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.GridSpec
+import io.engst.launcher.ui.shared.DarkModePreference
 
 private const val MIN_GRID_SIZE = 3
 private const val MAX_GRID_SIZE = 8
@@ -41,10 +45,15 @@ fun AppGridMenu(
     offset: DpOffset,
     isDefaultLauncher: Boolean,
     currentGridSpec: GridSpec,
+    darkModePreference: DarkModePreference,
+    isBarVisible: Boolean,
     onDismissRequest: () -> Unit,
     onAppsListRequested: () -> Unit,
     onSetDefaultLauncherRequested: () -> Unit,
+    onResetDefaultsRequested: () -> Unit,
     onGridSpecSelected: (GridSpec) -> Unit,
+    onDarkModeChanged: (DarkModePreference) -> Unit,
+    onBarVisibilityChanged: (Boolean) -> Unit,
 ) {
     DropdownMenu(
         expanded = isVisible,
@@ -65,9 +74,22 @@ fun AppGridMenu(
             text = { Text("Apps list") },
             onClick = { onAppsListRequested() },
         )
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+            text = { Text("Reset defaults") },
+            onClick = { onResetDefaultsRequested() },
+        )
         GridLayoutEditor(
             currentSpec = currentGridSpec,
             onGridSpecSelected = onGridSpecSelected,
+        )
+        DarkModeToggle(
+            current = darkModePreference,
+            onChanged = onDarkModeChanged,
+        )
+        BarVisibilityToggle(
+            isVisible = isBarVisible,
+            onChanged = onBarVisibilityChanged,
         )
     }
 }
@@ -148,6 +170,55 @@ private fun RowScope.SpinBox(
     }
 }
 
+@Composable
+private fun DarkModeToggle(
+    current: DarkModePreference,
+    onChanged: (DarkModePreference) -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Text(
+                text = "Theme",
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            ) {
+                DarkModePreference.entries.forEach { option ->
+                    FilterChip(
+                        selected = current == option,
+                        onClick = { onChanged(option) },
+                        label = { Text(option.label()) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun DarkModePreference.label(): String = when (this) {
+    DarkModePreference.SYSTEM -> "System"
+    DarkModePreference.LIGHT -> "Light"
+    DarkModePreference.DARK -> "Dark"
+}
+
+@Composable
+private fun BarVisibilityToggle(
+    isVisible: Boolean,
+    onChanged: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text("Quick bar", style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = isVisible, onCheckedChange = onChanged)
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 private fun AppGridMenuPreview() {
@@ -156,9 +227,14 @@ private fun AppGridMenuPreview() {
         offset = DpOffset(0.dp, 0.dp),
         isDefaultLauncher = false,
         currentGridSpec = GridSpec(4, 4),
+        darkModePreference = DarkModePreference.SYSTEM,
+        isBarVisible = true,
         onDismissRequest = {},
         onAppsListRequested = {},
         onSetDefaultLauncherRequested = {},
+        onResetDefaultsRequested = {},
         onGridSpecSelected = {},
+        onDarkModeChanged = {},
+        onBarVisibilityChanged = {},
     )
 }

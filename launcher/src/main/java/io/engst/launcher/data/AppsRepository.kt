@@ -15,9 +15,10 @@ import io.engst.launcher.data.proto.GridDataProto
 import io.engst.launcher.data.store.toGridData
 import io.engst.launcher.data.store.toProto
 import io.engst.launcher.model.App
-import io.engst.launcher.model.Cell
 import io.engst.launcher.model.Grid
 import io.engst.launcher.model.GridSpec
+import io.engst.launcher.model.collapseEmptyPages
+import io.engst.launcher.ui.shared.DarkModePreference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,12 +39,18 @@ val defaultGridData =
 interface AppsRepository {
    val installedApps: Flow<List<App>>
    val grid: Flow<Grid>
+   val darkModePreference: Flow<DarkModePreference>
+   val isBarVisible: Flow<Boolean>
 
    fun setGridSpec(spec: GridSpec)
 
    fun update(grid: Grid)
 
    fun resetDefaults(spec: GridSpec = defaultGridSpec)
+
+   fun setDarkModePreference(preference: DarkModePreference)
+
+   fun setBarVisible(visible: Boolean)
 }
 
 class AppsRepositoryImpl(
@@ -137,14 +144,23 @@ class AppsRepositoryImpl(
          proto.toGridData()
       }
 
+   override val darkModePreference: Flow<DarkModePreference> =
+      storedGridData.map { it.darkModePreference }
+         .asSharedFlow()
+
+   override val isBarVisible: Flow<Boolean> =
+      storedGridData.map { it.isBarVisible }
+         .asSharedFlow()
+
    override val grid: Flow<Grid> =
       installedApps
          .combine(storedGridData) { apps, store ->
             val spec = GridSpec(store.cols, store.rows)
+            val barCapacity = if (store.barSlots > 0) store.barSlots else spec.cols
 
             val barApps =
                if (store.bar == null) {
-                  buildBar(apps).take(spec.rows)
+                  buildBar(apps).take(barCapacity)
                } else {
                   store.bar.mapNotNull { appId ->
                      apps.find { it.componentName.flattenToString() == appId }
@@ -159,26 +175,31 @@ class AppsRepositoryImpl(
                   buildGridFromStore(store.grid, apps, barAppIds, spec)
                }
 
-            Grid(spec = spec, bar = barApps, grid = gridApps)
+            Grid(spec = spec, bar = barApps, grid = gridApps).collapseEmptyPages()
          }
          .asSharedFlow()
 
    override fun update(grid: Grid) {
       logDebug { "updateGrid: $grid" }
       scope.launch {
-         val data = GridData(
-            cols = grid.spec.cols,
-            rows = grid.spec.rows,
-            bar = grid.bar.map { it.componentName.flattenToString() },
-            grid = grid.grid.map { page ->
-               page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }.toMap()
-            },
-            hasUserGrid = true,
-            hasUserBar = true,
-            barSlots = 0,
-         )
-         logDebug { "persisting grid update to DataStore" }
-         dataStore.updateData { data.toProto() }
+         dataStore.updateData { current ->
+            val existing = current.toGridData()
+            val data = GridData(
+               cols = grid.spec.cols,
+               rows = grid.spec.rows,
+               bar = grid.bar.map { it.componentName.flattenToString() },
+               grid = grid.grid.map { page ->
+                  page.map { (cell, app) -> cell to app?.componentName?.flattenToString() }.toMap()
+               },
+               hasUserGrid = true,
+               hasUserBar = true,
+               barSlots = existing.barSlots,
+               darkModePreference = existing.darkModePreference,
+               isBarVisible = existing.isBarVisible,
+            )
+            logDebug { "persisting grid update to DataStore" }
+            data.toProto()
+         }
       }
    }
 
@@ -190,105 +211,42 @@ class AppsRepositoryImpl(
    override fun resetDefaults(spec: GridSpec) {
       logDebug { "resetDefaults: $spec" }
       scope.launch {
-         val data = defaultGridData.copy(cols = spec.cols, rows = spec.rows)
-         logDebug { "persisting resetDefaults to DataStore" }
-         dataStore.updateData { data.toProto() }
+         dataStore.updateData { current ->
+            val existing = current.toGridData()
+            val data = defaultGridData.copy(
+               cols = spec.cols,
+               rows = spec.rows,
+               darkModePreference = existing.darkModePreference,
+               isBarVisible = existing.isBarVisible,
+            )
+            logDebug { "persisting resetDefaults to DataStore" }
+            data.toProto()
+         }
       }
    }
 
-   private fun buildGridFromStore(
-      storeGrid: List<Map<Cell, AppId?>>,
-      apps: List<App>,
-      barAppIds: List<String>,
-      spec: GridSpec,
-   ): List<Map<Cell, App?>> {
-      val orderedCells =
-         (0 until spec.cols).flatMap { col ->
-            (0 until spec.rows).map { row -> Cell(col, row) }
-         }
-
-      val pages =
-         storeGrid
-            .map { page ->
-               val linked = LinkedHashMap<Cell, App?>()
-               page.forEach { (cell, appId) ->
-                  val app = apps.find { it.componentName.flattenToString() == appId }
-                  linked[cell] = app
-               }
-               linked
-            }
-            .toMutableList()
-
-      val pageCapacity = orderedCells.size
-
-      fun normalizePage(index: Int) {
-         val existing = pages[index]
-         if (
-            existing.size == pageCapacity &&
-            orderedCells.all { existing.containsKey(it) }
-         ) return
-         val normalized = LinkedHashMap<Cell, App?>(pageCapacity)
-         orderedCells.forEach { c -> normalized[c] = existing[c] }
-         pages[index] = normalized
-      }
-      for (i in pages.indices) normalizePage(i)
-
-      val placedIds = buildSet {
-         pages.forEach { page -> page.values.forEach { app -> app?.let { add(it.id) } } }
-      }
-
-      val toAppend =
-         apps.filterNot { barAppIds.contains(it.id) || placedIds.contains(it.id) }
-
-      var lastOccupied = -1
-      pages.forEachIndexed { pageIndex, page ->
-         orderedCells.forEachIndexed { cellIndex, cell ->
-            if (page[cell] != null) {
-               lastOccupied = pageIndex * pageCapacity + cellIndex
-            }
+   override fun setDarkModePreference(preference: DarkModePreference) {
+      logDebug { "setDarkModePreference: $preference" }
+      scope.launch {
+         dataStore.updateData { current ->
+            current.toGridData().copy(darkModePreference = preference).toProto()
          }
       }
+   }
 
-      var nextIndex = lastOccupied + 1
-      toAppend.forEach { app ->
-         val pageIndex = nextIndex / pageCapacity
-         val cellIndex = nextIndex % pageCapacity
-         while (pageIndex >= pages.size) {
-            val newPage = LinkedHashMap<Cell, App?>(pageCapacity)
-            orderedCells.forEach { c -> newPage[c] = null }
-            pages.add(newPage)
+   override fun setBarVisible(visible: Boolean) {
+      logDebug { "setBarVisible: $visible" }
+      scope.launch {
+         dataStore.updateData { current ->
+            current.toGridData().copy(isBarVisible = visible).toProto()
          }
-         normalizePage(pageIndex)
-         val targetCell = orderedCells[cellIndex]
-         pages[pageIndex][targetCell] = app
-         nextIndex++
       }
-
-      return pages.map { it.toMap() }
    }
 
    private fun buildBar(apps: List<App>): List<App> {
       val defaultAppIds = resolveDefaultApps()
       return defaultAppIds.mapNotNull { appId ->
          apps.find { it.componentName.flattenToString().contains(appId) }
-      }
-   }
-
-   private fun buildGrid(apps: List<App>, spec: GridSpec): List<Map<Cell, App?>> = buildList {
-      val pageCapacity = spec.cols * spec.rows
-      if (pageCapacity <= 0) return@buildList
-      val totalPages = if (apps.isEmpty()) 0 else (apps.size + pageCapacity - 1) / pageCapacity
-      var index = 0
-      (0 until totalPages).forEach { _ ->
-         val page = buildMap {
-            (0 until spec.cols).forEach { col ->
-               (0 until spec.rows).forEach { row ->
-                  val app = if (index < apps.size) apps[index++] else null
-                  put(Cell(col, row), app)
-               }
-            }
-         }
-         add(page)
       }
    }
 

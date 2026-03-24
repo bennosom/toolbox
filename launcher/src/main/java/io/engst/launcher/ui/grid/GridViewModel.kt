@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import io.engst.core.Logging
 import io.engst.core.scopedLogger
 import io.engst.launcher.data.AppsRepository
+import io.engst.launcher.data.defaultGridSpec
 import io.engst.launcher.model.DragDestination
 import io.engst.launcher.model.applyDragMove
+import io.engst.launcher.model.collapseEmptyPages
 import io.engst.launcher.ui.grid.drag.DragPhase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,6 +41,18 @@ class GridViewModel(
                     }
                     state.copy(persistedGrid = grid, dragPhase = updatedPhase)
                 }
+            }
+        }
+        viewModelScope.launch {
+            repository.darkModePreference.collect { preference ->
+                logDebug { "dark mode preference loaded: $preference" }
+                _uiState.update { it.copy(darkModePreference = preference) }
+            }
+        }
+        viewModelScope.launch {
+            repository.isBarVisible.collect { visible ->
+                logDebug { "bar visibility loaded: $visible" }
+                _uiState.update { it.copy(isBarVisible = visible) }
             }
         }
     }
@@ -74,6 +88,37 @@ class GridViewModel(
             is GridIntent.DefaultLauncherSettingsOpenRequested -> {
                 _uiState.update { it.copy(isGridMenuVisible = false) }
                 emitEffect(GridEffect.OpenDefaultLauncherSettings)
+            }
+            is GridIntent.ResetDefaultsRequested -> {
+                logDebug { "reset defaults requested — showing undo snackbar" }
+                _uiState.update { it.copy(isGridMenuVisible = false) }
+                emitEffect(GridEffect.ShowResetDefaultsSnackbar)
+            }
+            is GridIntent.ResetDefaultsConfirmed -> {
+                logDebug { "reset defaults confirmed — persisting" }
+                val spec = _uiState.value.persistedGrid?.spec ?: defaultGridSpec
+                repository.resetDefaults(spec)
+            }
+            is GridIntent.ResetDefaultsUndone -> {
+                logDebug { "reset defaults undone — no persistence" }
+            }
+            is GridIntent.DarkModeChanged -> {
+                logDebug { "dark mode changed to ${intent.preference}" }
+                _uiState.update { it.copy(darkModePreference = intent.preference) }
+                repository.setDarkModePreference(intent.preference)
+            }
+            is GridIntent.BarVisibilityChanged -> {
+                logDebug { "bar visibility changed to ${intent.visible}" }
+                _uiState.update { it.copy(isBarVisible = intent.visible) }
+                repository.setBarVisible(intent.visible)
+            }
+            is GridIntent.SwipeDownDetected -> {
+                logDebug { "swipe down — expanding notifications panel" }
+                emitEffect(GridEffect.ExpandNotificationsPanel)
+            }
+            is GridIntent.SwipeUpDetected -> {
+                logDebug { "swipe up — search placeholder (no-op)" }
+                emitEffect(GridEffect.OpenSearch)
             }
         }
     }
@@ -121,7 +166,7 @@ class GridViewModel(
             return
         }
         logDebug { "drag dropped — committing working grid" }
-        repository.update(phase.workingGrid)
+        repository.update(phase.workingGrid.collapseEmptyPages())
         _uiState.update { it.copy(dragPhase = DragPhase.Idle) }
     }
 

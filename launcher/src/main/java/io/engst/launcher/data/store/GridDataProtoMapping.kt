@@ -5,6 +5,7 @@ import io.engst.launcher.data.proto.GridCellProto
 import io.engst.launcher.data.proto.GridDataProto
 import io.engst.launcher.data.proto.GridPageProto
 import io.engst.launcher.model.Cell
+import io.engst.launcher.ui.shared.DarkModePreference
 
 fun GridDataProto.toGridData(): GridData {
     val gridPages = if (hasUserGrid) {
@@ -31,7 +32,21 @@ fun GridDataProto.toGridData(): GridData {
         hasUserGrid = hasUserGrid,
         hasUserBar = hasUserBar,
         barSlots = barSlots,
+        darkModePreference = darkModePreference.toDarkModePreference(),
+        isBarVisible = !barHidden,
     )
+}
+
+private fun Int.toDarkModePreference(): DarkModePreference = when (this) {
+    1 -> DarkModePreference.LIGHT
+    2 -> DarkModePreference.DARK
+    else -> DarkModePreference.SYSTEM
+}
+
+private fun DarkModePreference.toProtoInt(): Int = when (this) {
+    DarkModePreference.SYSTEM -> 0
+    DarkModePreference.LIGHT -> 1
+    DarkModePreference.DARK -> 2
 }
 
 fun GridData.toProto(): GridDataProto =
@@ -41,6 +56,8 @@ fun GridData.toProto(): GridDataProto =
         hasUserGrid = this@toProto.hasUserGrid
         hasUserBar = this@toProto.hasUserBar
         barSlots = this@toProto.barSlots
+        darkModePreference = this@toProto.darkModePreference.toProtoInt()
+        barHidden = !this@toProto.isBarVisible
 
         this@toProto.grid?.forEach { page ->
             addGrid(

@@ -11,6 +11,8 @@ message GridDataProto {
   bool has_user_grid = 5;
   bool has_user_bar = 6;
   int32 bar_slots = 7;
+  int32 dark_mode_preference = 8;
+  bool bar_hidden = 9;
 }
 
 message GridPageProto {

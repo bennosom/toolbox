@@ -7,9 +7,10 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -22,14 +23,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
-import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.ViewConfiguration
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.layout.onPlaced
+import io.engst.launcher.ui.shared.localOffsetOf
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -90,7 +91,7 @@ fun AppGridQuickBar(
         }
     }
 
-    Row(
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(QUICK_BAR_HEIGHT_DP.dp)
@@ -102,7 +103,7 @@ fun AppGridQuickBar(
         horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        apps.forEach { app ->
+        itemsIndexed(apps, key = { _, app -> app.id }) { _, app ->
             Box(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.medium)
@@ -148,10 +149,9 @@ private fun determineQuickBarTargetIndex(
 
 private val Rect.centerX: Float get() = (left + right) / 2f
 
-private fun LayoutCoordinates.localOffsetOf(event: DragAndDropEvent): Offset? {
-    if (!isAttached) return null
-    val root = findRootCoordinates()
-    if (!root.isAttached) return null
-    val drag = event.toAndroidDragEvent()
-    return localPositionOf(root, Offset(drag.x, drag.y))
+@Preview(showBackground = true, widthDp = 360, heightDp = 96)
+@Composable
+private fun AppGridQuickBarPreview() {
+    // Preview requires real App instances with Drawable icons.
+    // Shown here for structural verification — replace with stub Apps in IDE.
 }

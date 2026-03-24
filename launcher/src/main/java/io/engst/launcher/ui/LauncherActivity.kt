@@ -43,7 +43,10 @@ import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchDefaultAppSettings
 import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.ui.grid.AppGrid
+import io.engst.launcher.ui.grid.GridIntent
+import io.engst.launcher.ui.grid.GridViewModel
 import io.engst.launcher.ui.manager.AppManager
+import io.engst.launcher.ui.shared.DarkModePreference
 import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.SyncWallpaperToSystemBars
 import io.engst.launcher.ui.shared.rememberWallpaperState
@@ -69,7 +72,15 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
 
     setContent {
        val context = LocalContext.current
-       val darkMode = isSystemInDarkTheme()
+       val systemDarkMode = isSystemInDarkTheme()
+       val gridViewModel: GridViewModel = org.koin.androidx.compose.koinViewModel()
+       val gridState by gridViewModel.uiState.collectAsStateWithLifecycle()
+
+       val darkMode = when (gridState.darkModePreference) {
+          DarkModePreference.SYSTEM -> systemDarkMode
+          DarkModePreference.LIGHT -> false
+          DarkModePreference.DARK -> true
+       }
        val wallpaperState = rememberWallpaperState(darkMode)
        SyncWallpaperToSystemBars(wallpaperState)
        CompositionLocalProvider(LocalWallpaperState provides wallpaperState) {
@@ -80,6 +91,8 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
           ) {
           Box(modifier = Modifier.fillMaxSize()) {
              val repository: AppsRepository by inject()
+             val scope = rememberCoroutineScope()
+             val snackbarHostState = remember { SnackbarHostState() }
 
              var showAppManager by remember { mutableStateOf(false) }
              if (showAppManager) {
@@ -101,13 +114,27 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                       .fillMaxSize()
                       .safeDrawingPadding(),
                    isDefaultLauncher = isDefaultHomeState.value,
+                   viewModel = gridViewModel,
                    onNavigateToAppManager = { showAppManager = true },
                    onSetDefaultLauncher = { context.launchDefaultAppSettings() },
+                   onShowResetDefaultsSnackbar = {
+                      scope.launch {
+                         val result = snackbarHostState.showSnackbar(
+                            message = "Layout reset to defaults",
+                            actionLabel = "Undo",
+                            duration = SnackbarDuration.Short,
+                         )
+                         when (result) {
+                            SnackbarResult.ActionPerformed ->
+                               gridViewModel.onIntent(GridIntent.ResetDefaultsUndone)
+                            SnackbarResult.Dismissed ->
+                               gridViewModel.onIntent(GridIntent.ResetDefaultsConfirmed)
+                         }
+                      }
+                   },
                 )
              }
 
-             val scope = rememberCoroutineScope()
-             val snackbarHostState = remember { SnackbarHostState() }
              LaunchedEffect(isDefaultHomeState.value) {
                 if (!isDefaultHomeState.value) {
                    scope.launch {

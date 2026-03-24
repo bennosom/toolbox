@@ -30,9 +30,7 @@ val rootModule = module {
 
 class LauncherApp : Application(), Logging by scopedLogger("LauncherApp") {
 
-  companion object {
-    lateinit var lastConfiguration: String
-  }
+  private var lastConfiguration: String = ""
 
   override fun onCreate() {
     super.onCreate()
