@@ -9,7 +9,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.asImageBitmap
@@ -63,18 +62,25 @@ fun Modifier.draggableAppSource(
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 try {
-                    val longPress = awaitLongPressOrCancellation(down.id)
-                    if (longPress == null) {
-                        logger.logDebug { "tap detected appId=${app.id}" }
-                        onTap()
-                        return@awaitEachGesture
+                    val result = awaitLongPressOrSwipeOrTap(down, viewConfiguration)
+                    when (result) {
+                        is GestureResult.Tap -> {
+                            logger.logDebug { "tap detected appId=${app.id}" }
+                            onTap()
+                            return@awaitEachGesture
+                        }
+                        is GestureResult.Swipe -> {
+                            logger.logDebug { "swipe detected — ignoring appId=${app.id}" }
+                            return@awaitEachGesture
+                        }
+                        is GestureResult.LongPress -> {
+                            logger.logDebug { "long press detected appId=${app.id}" }
+                            result.change.consumeDownChange()
+                            onLongPress()
+                        }
                     }
 
-                    logger.logDebug { "long press detected appId=${app.id}" }
-                    longPress.consumeDownChange()
-                    onLongPress()
-
-                    val dragDetected = awaitDragPastSlop(longPress, viewConfiguration)
+                    val dragDetected = awaitDragPastSlop(result.change, viewConfiguration)
                     if (dragDetected) {
                         logger.logDebug { "drag started appId=${app.id}" }
                         onDragStarted()
@@ -86,6 +92,39 @@ fun Modifier.draggableAppSource(
             }
         },
     )
+}
+
+private sealed interface GestureResult {
+    data class Tap(val change: PointerInputChange) : GestureResult
+    data class LongPress(val change: PointerInputChange) : GestureResult
+    object Swipe : GestureResult
+}
+
+/**
+ * Waits for one of three outcomes:
+ * - **Tap**: pointer lifted before long-press timeout without exceeding touch slop
+ * - **Swipe**: pointer moved past touch slop before long-press timeout
+ * - **LongPress**: pointer stayed within slop until the long-press timeout fired
+ */
+private suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awaitLongPressOrSwipeOrTap(
+    down: PointerInputChange,
+    viewConfiguration: ViewConfiguration,
+): GestureResult {
+    val slopSquared = viewConfiguration.touchSlop * viewConfiguration.touchSlop
+    val longPressTimeout = viewConfiguration.longPressTimeoutMillis
+    val anchor = down.position
+    while (true) {
+        val event = awaitPointerEvent()
+        val change = event.changes.firstOrNull { it.id == down.id } ?: return GestureResult.Swipe
+        if (change.changedToUp()) {
+            change.consumeDownChange()
+            return GestureResult.Tap(change)
+        }
+        val elapsed = change.uptimeMillis - down.uptimeMillis
+        val distanceSq = (change.position - anchor).let { it.x * it.x + it.y * it.y }
+        if (distanceSq > slopSquared) return GestureResult.Swipe
+        if (elapsed >= longPressTimeout) return GestureResult.LongPress(change)
+    }
 }
 
 /**
