@@ -100,6 +100,7 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                    modifier = Modifier
                       .fillMaxSize()
                       .safeDrawingPadding(),
+                   isDefaultLauncher = isDefaultHomeState.value,
                    onNavigateToAppManager = { showAppManager = true },
                    onSetDefaultLauncher = { context.launchDefaultAppSettings() },
                 )

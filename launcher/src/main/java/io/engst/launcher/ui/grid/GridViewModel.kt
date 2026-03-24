@@ -61,12 +61,7 @@ class GridViewModel(
             }
             is GridIntent.GridMenuDismissed -> _uiState.update { it.copy(isGridMenuVisible = false) }
             is GridIntent.GridSpecChangeRequested -> {
-                _uiState.update { it.copy(isGridMenuVisible = false) }
                 repository.setGridSpec(intent.spec)
-            }
-            is GridIntent.ResetDefaultsRequested -> {
-                _uiState.update { it.copy(isGridMenuVisible = false) }
-                repository.resetDefaults()
             }
             is GridIntent.AppDetailsRequested -> emitEffect(GridEffect.OpenAppDetails(intent.app))
             is GridIntent.AppRemovalRequested -> emitEffect(GridEffect.RemoveApp(intent.app))
@@ -79,11 +74,6 @@ class GridViewModel(
                 _uiState.update { it.copy(isGridMenuVisible = false) }
                 emitEffect(GridEffect.OpenDefaultLauncherSettings)
             }
-            is GridIntent.DisplaySettingsOpenRequested -> {
-                _uiState.update { it.copy(isGridMenuVisible = false) }
-                emitEffect(GridEffect.OpenDisplaySettings)
-            }
-            is GridIntent.ColorWallpaperRequested -> emitEffect(GridEffect.SetColorWallpaper(intent.colorArgb))
         }
     }
 

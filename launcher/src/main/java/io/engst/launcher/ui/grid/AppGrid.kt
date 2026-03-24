@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
@@ -34,14 +33,11 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.content.Context
-import android.content.Intent
-import android.provider.Settings
 import io.engst.core.apps.launchActivity
-import io.engst.core.apps.launchIntent
-import io.engst.core.wallpaper.setColorWallpaper
 import io.engst.launcher.core.launchAppDetails
 import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchShortcut
+import io.engst.launcher.model.GridSpec
 import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.rememberScreenInfo
 import org.koin.androidx.compose.koinViewModel
@@ -52,6 +48,7 @@ private val SPACING_DP = 12.dp
 @Composable
 fun AppGrid(
     modifier: Modifier = Modifier,
+    isDefaultLauncher: Boolean = false,
     viewModel: GridViewModel = koinViewModel(),
     onNavigateToAppManager: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
@@ -190,13 +187,12 @@ fun AppGrid(
         AppGridMenu(
             isVisible = state.isGridMenuVisible,
             offset = state.gridMenuOffset,
+            isDefaultLauncher = isDefaultLauncher,
+            currentGridSpec = displayGrid?.spec ?: GridSpec(4, 4),
             onDismissRequest = { viewModel.onIntent(GridIntent.GridMenuDismissed) },
             onAppsListRequested = { viewModel.onIntent(GridIntent.AppManagerOpenRequested) },
             onSetDefaultLauncherRequested = { viewModel.onIntent(GridIntent.DefaultLauncherSettingsOpenRequested) },
-            onResetDefaultsRequested = { viewModel.onIntent(GridIntent.ResetDefaultsRequested) },
             onGridSpecSelected = { spec -> viewModel.onIntent(GridIntent.GridSpecChangeRequested(spec)) },
-            onDarkModeRequested = { viewModel.onIntent(GridIntent.DisplaySettingsOpenRequested) },
-            onColorWallpaperRequested = { color -> viewModel.onIntent(GridIntent.ColorWallpaperRequested(color.toArgb())) },
         )
     }
 }
@@ -233,8 +229,6 @@ private fun handleEffect(
         is GridEffect.LaunchShortcut -> context.launchShortcut(effect.shortcut)
         is GridEffect.OpenAppManager -> onNavigateToAppManager()
         is GridEffect.OpenDefaultLauncherSettings -> onSetDefaultLauncher()
-        is GridEffect.OpenDisplaySettings -> context.launchIntent(Intent(Settings.ACTION_DISPLAY_SETTINGS))
-        is GridEffect.SetColorWallpaper -> context.setColorWallpaper(effect.colorArgb)
         is GridEffect.NavigateToPage -> { /* handled by pager directly in AppGridPage */ }
     }
 }

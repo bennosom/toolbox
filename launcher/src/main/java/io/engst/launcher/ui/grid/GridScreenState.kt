@@ -51,14 +51,11 @@ sealed interface GridIntent {
     data class GridMenuRequested(val offset: DpOffset) : GridIntent
     object GridMenuDismissed : GridIntent
     data class GridSpecChangeRequested(val spec: GridSpec) : GridIntent
-    object ResetDefaultsRequested : GridIntent
     data class AppDetailsRequested(val app: App) : GridIntent
     data class AppRemovalRequested(val app: App) : GridIntent
     data class ShortcutLaunchRequested(val shortcut: ShortcutInfo) : GridIntent
     object AppManagerOpenRequested : GridIntent
     object DefaultLauncherSettingsOpenRequested : GridIntent
-    object DisplaySettingsOpenRequested : GridIntent
-    data class ColorWallpaperRequested(val colorArgb: Int) : GridIntent
 }
 
 sealed interface GridEffect {
@@ -68,7 +65,5 @@ sealed interface GridEffect {
     data class LaunchShortcut(val shortcut: ShortcutInfo) : GridEffect
     object OpenAppManager : GridEffect
     object OpenDefaultLauncherSettings : GridEffect
-    object OpenDisplaySettings : GridEffect
-    data class SetColorWallpaper(val colorArgb: Int) : GridEffect
     data class NavigateToPage(val pageIndex: Int) : GridEffect
 }
