@@ -39,12 +39,6 @@ class GridViewModel(
             }
         }
         viewModelScope.launch {
-            repository.darkModePreference.collect { preference ->
-                logDebug { "dark mode preference loaded: $preference" }
-                _uiState.update { it.copy(darkModePreference = preference) }
-            }
-        }
-        viewModelScope.launch {
             repository.isBarVisible.collect { visible ->
                 logDebug { "bar visibility loaded: $visible" }
                 _uiState.update { it.copy(isBarVisible = visible) }
@@ -96,11 +90,6 @@ class GridViewModel(
             }
             is GridIntent.ResetDefaultsUndone -> {
                 logDebug { "reset defaults undone — no persistence" }
-            }
-            is GridIntent.DarkModeChanged -> {
-                logDebug { "dark mode changed to ${intent.preference}" }
-                _uiState.update { it.copy(darkModePreference = intent.preference) }
-                repository.setDarkModePreference(intent.preference)
             }
             is GridIntent.BarVisibilityChanged -> {
                 logDebug { "bar visibility changed to ${intent.visible}" }

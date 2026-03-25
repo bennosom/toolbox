@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.os.Build
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.captionBar
 import androidx.compose.foundation.layout.displayCutout
@@ -24,7 +23,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 
 @Composable
-fun ColumnScope.DeviceInfo(modifier: Modifier = Modifier) {
+fun DeviceInfo(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val density = LocalDensity.current
   val config = LocalConfiguration.current

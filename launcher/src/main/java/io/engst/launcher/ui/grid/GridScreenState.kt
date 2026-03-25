@@ -9,15 +9,12 @@ import io.engst.launcher.model.Grid
 import io.engst.launcher.model.GridSpec
 import io.engst.launcher.ui.grid.drag.DragPhase
 
-import io.engst.launcher.ui.shared.DarkModePreference
-
 data class GridScreenState(
     val persistedGrid: Grid? = null,
     val dragPhase: DragPhase = DragPhase.Idle,
     val activeAppMenuIdentifier: String? = null,
     val isGridMenuVisible: Boolean = false,
     val gridMenuOffset: DpOffset = DpOffset(0.dp, 0.dp),
-    val darkModePreference: DarkModePreference = DarkModePreference.SYSTEM,
     val isBarVisible: Boolean = true,
 ) {
     val isInDragMode: Boolean
@@ -63,7 +60,6 @@ sealed interface GridIntent {
     object ResetDefaultsRequested : GridIntent
     object ResetDefaultsConfirmed : GridIntent
     object ResetDefaultsUndone : GridIntent
-    data class DarkModeChanged(val preference: DarkModePreference) : GridIntent
     data class BarVisibilityChanged(val visible: Boolean) : GridIntent
     object SwipeDownDetected : GridIntent
     object SwipeUpDetected : GridIntent

@@ -1,6 +1,8 @@
 package io.engst.launcher.ui.grid
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ShortcutInfo
 import io.engst.core.Logging
 import io.engst.core.apps.launchActivity
@@ -26,7 +28,6 @@ class GridEffectHandlerImpl(
     private val context: Context,
 ) : GridEffectHandler, Logging by scopedLogger("GridEffectHandler") {
 
-    var onNavigateToAppManager: () -> Unit = {}
     var onSetDefaultLauncher: () -> Unit = {}
     var onShowResetDefaultsSnackbar: () -> Unit = {}
 
@@ -47,7 +48,10 @@ class GridEffectHandlerImpl(
     }
 
     override fun openAppManager() {
-        onNavigateToAppManager()
+        context.launchActivity(
+            component = ComponentName("io.engst.devicetool", "io.engst.devicetool.DeviceToolActivity"),
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK,
+        )
     }
 
     override fun openDefaultLauncherSettings() {

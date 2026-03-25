@@ -239,16 +239,13 @@ private fun AppGridContent(
         offset = state.gridMenuOffset,
         isDefaultLauncher = isDefaultLauncher,
         currentGridSpec = displayGrid.spec,
-        darkModePreference = state.darkModePreference,
         isBarVisible = state.isBarVisible,
         onDismissRequest = { onIntent(GridIntent.GridMenuDismissed) },
-        onAppsListRequested = { onIntent(GridIntent.AppManagerOpenRequested) },
         onSetDefaultLauncherRequested = {
           onIntent(GridIntent.DefaultLauncherSettingsOpenRequested)
         },
         onResetDefaultsRequested = { onIntent(GridIntent.ResetDefaultsRequested) },
         onGridSpecSelected = { spec -> onIntent(GridIntent.GridSpecChangeRequested(spec)) },
-        onDarkModeChanged = { pref -> onIntent(GridIntent.DarkModeChanged(pref)) },
         onBarVisibilityChanged = { visible -> onIntent(GridIntent.BarVisibilityChanged(visible)) },
     )
   }
