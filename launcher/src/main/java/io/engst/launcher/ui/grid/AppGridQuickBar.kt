@@ -5,6 +5,7 @@ package io.engst.launcher.ui.grid
 import android.content.pm.ShortcutInfo
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -103,6 +104,7 @@ fun AppGridQuickBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         itemsIndexed(apps, key = { _, app -> app.id }) { _, app ->
+            val interactionSource = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.medium)
@@ -112,6 +114,7 @@ fun AppGridQuickBar(
                         iconSizeDp = iconSizeDp,
                         density = density,
                         viewConfiguration = viewConfiguration,
+                        interactionSource = interactionSource,
                         onTap = { onAppTapped(app) },
                         onLongPress = { onAppMenuRequested(app.id) },
                         onDragStarted = { onDragStarted(app.id) },

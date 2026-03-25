@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.App
@@ -98,26 +99,18 @@ class PressRippleInteractionTest {
                         iconSizeDp = 60.dp,
                         density = density,
                         viewConfiguration = viewConfiguration,
+                        interactionSource = interactionSource,
                         onTap = {},
                         onLongPress = {},
                         onDragStarted = {},
-                        onPressStarted = {
-                            val press = PressInteraction.Press(
-                                androidx.compose.ui.geometry.Offset.Zero,
-                            )
-                            scope.launch { interactionSource.emit(press) }
-                        },
-                        onGestureCompleted = {},
                     ),
             )
         }
 
-        composeTestRule.onNodeWithTag("tile").performTouchInput {
-            down(center)
-        }
+        // combinedClickable emits Press on pointer down via performClick
+        composeTestRule.onNodeWithTag("tile").performClick()
         composeTestRule.waitForIdle()
 
-        // Wait briefly for async emission
         val result = runBlocking {
             withTimeoutOrNull(1000) {
                 interactions.first { it.isNotEmpty() }
@@ -134,7 +127,6 @@ class PressRippleInteractionTest {
     @Test
     fun press_and_release_emits_PressInteraction_Release() {
         val capturedInteractions = mutableListOf<Any>()
-        var pressInteraction: PressInteraction.Press? = null
 
         composeTestRule.setContent {
             val density = LocalDensity.current
@@ -162,32 +154,16 @@ class PressRippleInteractionTest {
                         iconSizeDp = 60.dp,
                         density = density,
                         viewConfiguration = viewConfiguration,
+                        interactionSource = interactionSource,
                         onTap = {},
                         onLongPress = {},
                         onDragStarted = {},
-                        onPressStarted = {
-                            val press = PressInteraction.Press(
-                                androidx.compose.ui.geometry.Offset.Zero,
-                            )
-                            pressInteraction = press
-                            scope.launch { interactionSource.emit(press) }
-                        },
-                        onGestureCompleted = {
-                            pressInteraction?.let { press ->
-                                scope.launch {
-                                    interactionSource.emit(PressInteraction.Release(press))
-                                }
-                            }
-                            pressInteraction = null
-                        },
                     ),
             )
         }
 
-        composeTestRule.onNodeWithTag("tile").performTouchInput {
-            down(center)
-            up()
-        }
+        // combinedClickable emits Press + Release on performClick
+        composeTestRule.onNodeWithTag("tile").performClick()
         composeTestRule.waitForIdle()
 
         val result = runBlocking {

@@ -7,7 +7,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -187,8 +185,6 @@ private fun AppTileContainer(
     onShortcutLaunch: (ShortcutInfo) -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val scope = rememberCoroutineScope()
-    var pressInteraction: PressInteraction.Press? = remember { null }
 
     Box(
         modifier = Modifier
@@ -201,20 +197,10 @@ private fun AppTileContainer(
                 iconSizeDp = iconSizeDp,
                 density = density,
                 viewConfiguration = viewConfiguration,
+                interactionSource = interactionSource,
                 onTap = { onAppTapped(app) },
                 onLongPress = { onAppMenuRequested(app.id) },
                 onDragStarted = { onDragStarted(app.id) },
-                onPressStarted = {
-                    val press = PressInteraction.Press(androidx.compose.ui.geometry.Offset.Zero)
-                    pressInteraction = press
-                    scope.launch { interactionSource.emit(press) }
-                },
-                onGestureCompleted = {
-                    pressInteraction?.let { press ->
-                        scope.launch { interactionSource.emit(PressInteraction.Release(press)) }
-                    }
-                    pressInteraction = null
-                },
             ),
         contentAlignment = Alignment.Center,
     ) {

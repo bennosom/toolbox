@@ -6,9 +6,11 @@ import android.content.ClipData
 import android.content.Intent
 import android.view.View
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.graphics.asImageBitmap
@@ -33,6 +35,11 @@ private val logger = scopedLogger("DraggableAppSource")
  * 3. **Long press + drag past [ViewConfiguration.touchSlop]** → dismiss menu, start grid drag
  *    (grid shrinks to reveal page edges for cross-page dragging)
  * 4. **Release** → commit or cancel drag, grid returns to normal scale
+ *
+ * Tap and long-press use [combinedClickable] for reliable detection across all pointer
+ * event passes. Press ripple is managed by the [interactionSource] passed to
+ * [combinedClickable]. The [dragAndDropSource] modifier handles the system drag-and-drop
+ * transfer after a long-press + drag is detected.
  */
 @OptIn(ExperimentalFoundationApi::class)
 fun Modifier.draggableAppSource(
@@ -40,11 +47,10 @@ fun Modifier.draggableAppSource(
     iconSizeDp: Dp,
     density: Density,
     viewConfiguration: ViewConfiguration,
+    interactionSource: MutableInteractionSource,
     onTap: () -> Unit,
     onLongPress: () -> Unit,
     onDragStarted: () -> Unit,
-    onPressStarted: () -> Unit = {},
-    onGestureCompleted: () -> Unit = {},
 ): Modifier {
     val transferData = DragAndDropTransferData(
         clipData = ClipData.newIntent(
@@ -55,7 +61,18 @@ fun Modifier.draggableAppSource(
         ),
         flags = View.DRAG_FLAG_GLOBAL or View.DRAG_FLAG_OPAQUE,
     )
-    return dragAndDropSource(
+    return combinedClickable(
+        interactionSource = interactionSource,
+        indication = null,
+        onClick = {
+            logger.logDebug { "tap detected appId=${app.id}" }
+            onTap()
+        },
+        onLongClick = {
+            logger.logDebug { "long press detected appId=${app.id}" }
+            onLongPress()
+        },
+    ).dragAndDropSource(
         drawDragDecoration = {
             val shadowSizePx = with(density) { iconSizeDp.roundToPx() }
             val bitmap = app.icon.toBitmap(shadowSizePx, shadowSizePx).asImageBitmap()
@@ -64,34 +81,14 @@ fun Modifier.draggableAppSource(
         block = {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
-                onPressStarted()
-                try {
-                    val result = awaitLongPressOrSwipeOrTap(down, viewConfiguration)
-                    when (result) {
-                        is GestureResult.Tap -> {
-                            logger.logDebug { "tap detected appId=${app.id}" }
-                            onTap()
-                            return@awaitEachGesture
-                        }
-                        is GestureResult.Swipe -> {
-                            logger.logDebug { "swipe detected — ignoring appId=${app.id}" }
-                            return@awaitEachGesture
-                        }
-                        is GestureResult.LongPress -> {
-                            logger.logDebug { "long press detected appId=${app.id}" }
-                            result.change.consumeDownChange()
-                            onLongPress()
-                        }
-                    }
-
+                val result = awaitLongPressOrSwipeOrTap(down, viewConfiguration)
+                if (result is GestureResult.LongPress) {
                     val dragDetected = awaitDragPastSlop(result.change, viewConfiguration)
                     if (dragDetected) {
                         logger.logDebug { "drag started appId=${app.id}" }
                         onDragStarted()
                         startTransfer(transferData)
                     }
-                } finally {
-                    onGestureCompleted()
                 }
             }
         },
@@ -109,10 +106,6 @@ internal sealed interface GestureResult {
  * - **Tap**: pointer lifted before long-press timeout and within touch-slop
  * - **Swipe**: pointer moved past touch-slop, or another handler consumed the gesture
  * - **LongPress**: pointer stayed within slop and unconsumed until the long-press timeout fired
- *
- * Uses [PointerEventPass.Final] so the pager's scroll handler processes events first on
- * [PointerEventPass.Main]. The additional distance check ensures the tile yields the gesture
- * *before* the pager starts scrolling, preventing a visible jump on the first drag frame.
  *
  * Long-press timing uses [withTimeoutOrNull] so the timeout fires even when no new pointer
  * events arrive (finger held still).
@@ -172,4 +165,3 @@ internal suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.aw
         }
     }
 }
-
