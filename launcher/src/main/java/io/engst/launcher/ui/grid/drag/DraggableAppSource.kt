@@ -6,7 +6,7 @@ import android.content.ClipData
 import android.content.Intent
 import android.view.View
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -27,6 +27,7 @@ import io.engst.launcher.model.App
 import kotlinx.coroutines.withTimeoutOrNull
 
 private val logger = scopedLogger("DraggableAppSource")
+internal const val APP_DRAG_MIME_TYPE = "text/vnd.android.intent"
 
 /**
  * Touch interaction contract for app tiles:
@@ -36,9 +37,10 @@ private val logger = scopedLogger("DraggableAppSource")
  *    (grid shrinks to reveal page edges for cross-page dragging)
  * 4. **Release** → commit or cancel drag, grid returns to normal scale
  *
- * Tap and long-press use [combinedClickable] for reliable detection across all pointer
- * event passes. Press ripple is managed by the [interactionSource] passed to
- * [combinedClickable]. The [dragAndDropSource] modifier handles the system drag-and-drop
+ * Tap uses [clickable] for semantics and ripple. Long-press → menu/drag is decided by a single
+ * pointer-input state machine in [dragAndDropSource].
+ * Press ripple is managed by the [interactionSource] passed to [clickable]. The [dragAndDropSource]
+ * modifier handles the system drag-and-drop
  * transfer after a long-press + drag is detected.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -52,25 +54,13 @@ fun Modifier.draggableAppSource(
     onLongPress: () -> Unit,
     onDragStarted: () -> Unit,
 ): Modifier {
-    val transferData = DragAndDropTransferData(
-        clipData = ClipData.newIntent(
-            app.label,
-            Intent(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LAUNCHER)
-                .setComponent(app.componentName),
-        ),
-        flags = View.DRAG_FLAG_GLOBAL or View.DRAG_FLAG_OPAQUE,
-    )
-    return combinedClickable(
+    val transferData = buildDragTransferData(app)
+    return clickable(
         interactionSource = interactionSource,
         indication = null,
         onClick = {
             logger.logDebug { "tap detected appId=${app.id}" }
             onTap()
-        },
-        onLongClick = {
-            logger.logDebug { "long press detected appId=${app.id}" }
-            onLongPress()
         },
     ).dragAndDropSource(
         drawDragDecoration = {
@@ -83,6 +73,8 @@ fun Modifier.draggableAppSource(
                 val down = awaitFirstDown(requireUnconsumed = false)
                 val result = awaitLongPressOrSwipeOrTap(down, viewConfiguration)
                 if (result is GestureResult.LongPress) {
+                    logger.logDebug { "long press detected appId=${app.id}" }
+                    onLongPress()
                     val dragDetected = awaitDragPastSlop(result.change, viewConfiguration)
                     if (dragDetected) {
                         logger.logDebug { "drag started appId=${app.id}" }
@@ -92,6 +84,16 @@ fun Modifier.draggableAppSource(
                 }
             }
         },
+    )
+}
+
+internal fun buildDragTransferData(app: App): DragAndDropTransferData {
+    val dragIntent = Intent(Intent.ACTION_MAIN)
+        .addCategory(Intent.CATEGORY_LAUNCHER)
+        .setComponent(app.componentName)
+    return DragAndDropTransferData(
+        clipData = ClipData.newIntent(app.label, dragIntent),
+        flags = View.DRAG_FLAG_GLOBAL or View.DRAG_FLAG_OPAQUE,
     )
 }
 

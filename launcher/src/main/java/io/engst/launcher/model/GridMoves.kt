@@ -51,7 +51,8 @@ fun Grid.moveGridToGrid(
     if (origin.pageIndex == destination.pageIndex && origin.cell == destination.cell) return this
     val pages = grid.map { LinkedHashMap(it) }.toMutableList()
     val sourcePage = pages.getOrNull(origin.pageIndex) ?: return this
-    val destinationPage = pages.getOrNull(destination.pageIndex) ?: return this
+    val destinationPage = pages.destinationPageOrAppendForDrop(destination.pageIndex, spec) ?: return this
+    if (!sourcePage.containsKey(origin.cell) || !destinationPage.containsKey(destination.cell)) return this
     val sourceApp = sourcePage[origin.cell] ?: return this
     val destinationApp = destinationPage[destination.cell]
     if (destinationApp != null) {
@@ -70,7 +71,8 @@ fun Grid.moveBarToGrid(
 ): Grid {
     if (origin.index !in bar.indices) return this
     val pages = grid.map { LinkedHashMap(it) }.toMutableList()
-    val destinationPage = pages.getOrNull(destination.pageIndex) ?: return this
+    val destinationPage = pages.destinationPageOrAppendForDrop(destination.pageIndex, spec) ?: return this
+    if (!destinationPage.containsKey(destination.cell)) return this
     val destinationApp = destinationPage[destination.cell]
     if (destinationApp != null) {
         logger.logDebug { "moveBarToGrid: rejected — destination occupied cell=${destination.cell}" }
@@ -115,4 +117,20 @@ fun Grid.moveBarToBar(
     barList.add(targetIndex, item)
     logger.logDebug { "moveBarToBar: moved ${item.id} from [${origin.index}] to [$targetIndex]" }
     return copy(bar = barList)
+}
+
+private fun MutableList<LinkedHashMap<Cell, App?>>.destinationPageOrAppendForDrop(
+    pageIndex: Int,
+    spec: GridSpec,
+): LinkedHashMap<Cell, App?>? {
+    if (pageIndex in indices) return this[pageIndex]
+    if (pageIndex != size) return null
+    val appended = LinkedHashMap<Cell, App?>(spec.cols * spec.rows)
+    for (col in 0 until spec.cols) {
+        for (row in 0 until spec.rows) {
+            appended[Cell(col, row)] = null
+        }
+    }
+    add(appended)
+    return appended
 }

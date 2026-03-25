@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -56,7 +57,7 @@ fun AppGridQuickBar(
     onDragStarted: (appId: String) -> Unit,
     onDragMovedToSlot: (targetIndex: Int) -> Unit,
     onDragDropped: () -> Unit,
-    onDragCancelled: () -> Unit,
+    onDragEnded: (accepted: Boolean) -> Unit,
     onAppTapped: (App) -> Unit,
     onAppMenuRequested: (appId: String) -> Unit,
     onAppMenuDismissed: () -> Unit,
@@ -91,7 +92,7 @@ fun AppGridQuickBar(
       }
 
       override fun onEnded(event: DragAndDropEvent) {
-        onDragCancelled()
+        onDragEnded(event.toAndroidDragEvent().result)
       }
     }
   }
@@ -180,7 +181,7 @@ private fun AppGridQuickBarPopulatedPreview() {
         onDragStarted = {},
         onDragMovedToSlot = {},
         onDragDropped = {},
-        onDragCancelled = {},
+        onDragEnded = {},
         onAppTapped = {},
         onAppMenuRequested = {},
         onAppMenuDismissed = {},
@@ -205,7 +206,7 @@ private fun AppGridQuickBarEmptyPreview() {
         onDragStarted = {},
         onDragMovedToSlot = {},
         onDragDropped = {},
-        onDragCancelled = {},
+        onDragEnded = {},
         onAppTapped = {},
         onAppMenuRequested = {},
         onAppMenuDismissed = {},

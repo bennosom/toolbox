@@ -52,8 +52,13 @@ class GridViewModel(
             is GridIntent.DragStarted -> handleDragStarted(intent.appId)
             is GridIntent.DragMovedToGridCell -> handleDragMovedToGridCell(intent.pageIndex, intent.cell)
             is GridIntent.DragMovedToQuickBarSlot -> handleDragMovedToQuickBarSlot(intent.targetIndex)
+            is GridIntent.DragPointerMovedInPager -> handleDragPointerMovedInPager(intent)
             is GridIntent.DragDropped -> handleDragDropped()
+            is GridIntent.DragEnded -> handleDragEnded(intent.accepted)
             is GridIntent.DragCancelled -> handleDragCancelled()
+            is GridIntent.PageNavigationHandled -> {
+                _uiState.update { it.copy(pendingPageNavigationTarget = null) }
+            }
             is GridIntent.AppTapped -> handleAppTapped(intent)
             is GridIntent.AppMenuRequested -> _uiState.update {
                 it.copy(activeAppMenuIdentifier = intent.appId, isGridMenuVisible = false)
@@ -116,6 +121,7 @@ class GridViewModel(
         _uiState.update { state ->
             state.copy(
                 dragPhase = DragPhase.Active(draggingAppId = appId, workingGrid = grid),
+                pendingPageNavigationTarget = null,
                 activeAppMenuIdentifier = null,
                 isGridMenuVisible = false,
             )
@@ -151,7 +157,7 @@ class GridViewModel(
         }
         logDebug { "drag dropped — committing working grid" }
         repository.update(phase.workingGrid.collapseEmptyPages())
-        _uiState.update { it.copy(dragPhase = DragPhase.Idle) }
+        _uiState.update { it.copy(dragPhase = DragPhase.Idle, pendingPageNavigationTarget = null) }
     }
 
     private fun handleDragCancelled() {
@@ -160,7 +166,34 @@ class GridViewModel(
             return
         }
         logDebug { "drag cancelled — discarding working grid" }
-        _uiState.update { it.copy(dragPhase = DragPhase.Idle) }
+        _uiState.update { it.copy(dragPhase = DragPhase.Idle, pendingPageNavigationTarget = null) }
+    }
+
+    private fun handleDragEnded(accepted: Boolean) {
+        if (_uiState.value.dragPhase is DragPhase.Idle) return
+        if (accepted) {
+            logDebug { "drag ended on external drop target — clearing drag phase" }
+            _uiState.update { it.copy(dragPhase = DragPhase.Idle, pendingPageNavigationTarget = null) }
+        } else {
+            handleDragCancelled()
+        }
+    }
+
+    private fun handleDragPointerMovedInPager(intent: GridIntent.DragPointerMovedInPager) {
+        if (_uiState.value.dragPhase !is DragPhase.Active) return
+        val target = detectEdgeScrollTarget(
+            pointerXInPager = intent.pointerXInPager,
+            pagerWidth = intent.pagerWidth,
+            currentPage = intent.currentPage,
+            pageCount = intent.pageCount,
+        ) ?: return
+        _uiState.update { state ->
+            if (state.pendingPageNavigationTarget == target) {
+                state
+            } else {
+                state.copy(pendingPageNavigationTarget = target)
+            }
+        }
     }
 
     private fun handleAppTapped(intent: GridIntent.AppTapped) {

@@ -12,6 +12,7 @@ import io.engst.launcher.ui.grid.drag.DragPhase
 data class GridScreenState(
     val persistedGrid: Grid? = null,
     val dragPhase: DragPhase = DragPhase.Idle,
+    val pendingPageNavigationTarget: Int? = null,
     val activeAppMenuIdentifier: String? = null,
     val isGridMenuVisible: Boolean = false,
     val gridMenuOffset: DpOffset = DpOffset(0.dp, 0.dp),
@@ -44,8 +45,16 @@ sealed interface GridIntent {
     data class DragStarted(val appId: String) : GridIntent
     data class DragMovedToGridCell(val pageIndex: Int, val cell: Cell) : GridIntent
     data class DragMovedToQuickBarSlot(val targetIndex: Int) : GridIntent
+    data class DragPointerMovedInPager(
+        val pointerXInPager: Float,
+        val pagerWidth: Float,
+        val currentPage: Int,
+        val pageCount: Int,
+    ) : GridIntent
     object DragDropped : GridIntent
+    data class DragEnded(val accepted: Boolean) : GridIntent
     object DragCancelled : GridIntent
+    object PageNavigationHandled : GridIntent
     data class AppTapped(val app: App) : GridIntent
     data class AppMenuRequested(val appId: String) : GridIntent
     object AppMenuDismissed : GridIntent

@@ -20,8 +20,8 @@ constraints that apply to all stories. Key highlights for this story:
 
 - `moveGridToBar`, `moveBarToGrid`, and `moveBarToBar` are pure functions on immutable value
   types; each lives in its own file or a logically grouped extension file (≤ 300 lines).
-- The bar ViewModel and grid ViewModel are separate; they communicate only through the shared
-  repository, never through direct references.
+- Grid and bar drag state are handled through a single MVI source of truth (`GridScreenState`)
+  in `GridViewModel`; grid/bar composables communicate changes via intents.
 - Unit tests cover all four move directions plus the occupied-cell rejection path; 100 % branch
   coverage required.
 - Robolectric Compose tests verify that bar and grid composables render the correct state after

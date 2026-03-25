@@ -18,10 +18,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -58,9 +58,7 @@ fun AppGrid(
     viewModel: GridViewModel = koinViewModel(),
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-
   BackHandler(enabled = state.isInDragMode) { viewModel.onIntent(GridIntent.DragDropped) }
-
   AppGridContent(
       state = state,
       isDefaultLauncher = isDefaultLauncher,
@@ -78,9 +76,7 @@ private fun AppGridContent(
 ) {
   val density = LocalDensity.current
   val viewConfiguration = LocalViewConfiguration.current
-  val coroutineScope = rememberCoroutineScope()
   val spacing = MaterialTheme.spacing
-
   val displayGrid = state.displayGrid
   if (displayGrid == null || displayGrid.grid.isEmpty()) {
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -96,7 +92,17 @@ private fun AppGridContent(
   val pagerState = rememberPagerState { displayGrid.grid.size }
   val pagerContainerCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
   val gestureClaimedByTile = remember { mutableStateOf(false) }
+  val pendingPageNavigationTarget = state.pendingPageNavigationTarget
 
+  LaunchedEffect(pendingPageNavigationTarget) {
+    val target = pendingPageNavigationTarget ?: return@LaunchedEffect
+    if (target !in 0 until pagerState.pageCount || target == pagerState.currentPage) {
+      onIntent(GridIntent.PageNavigationHandled)
+      return@LaunchedEffect
+    }
+    pagerState.animateScrollToPage(target)
+    onIntent(GridIntent.PageNavigationHandled)
+  }
   Box(
       modifier =
           modifier
@@ -164,8 +170,8 @@ private fun AppGridContent(
                 draggingAppId = state.draggingAppId,
                 activeAppMenuIdentifier = state.activeAppMenuIdentifier,
                 pagerContainerCoordinates = pagerContainerCoordinates.value,
-                pagerState = pagerState,
-                coroutineScope = coroutineScope,
+                currentPagerPage = pagerState.currentPage,
+                pagerPageCount = pagerState.pageCount,
                 onDragStarted = { appId ->
                   gestureClaimedByTile.value = true
                   onIntent(GridIntent.DragStarted(appId))
@@ -173,8 +179,18 @@ private fun AppGridContent(
                 onDragMovedToCell = { page, cell ->
                   onIntent(GridIntent.DragMovedToGridCell(page, cell))
                 },
+                onDragPointerMovedInPager = { pointerX, pagerWidth, currentPage, pageCount ->
+                  onIntent(
+                      GridIntent.DragPointerMovedInPager(
+                          pointerXInPager = pointerX,
+                          pagerWidth = pagerWidth,
+                          currentPage = currentPage,
+                          pageCount = pageCount,
+                      )
+                  )
+                },
                 onDragDropped = { onIntent(GridIntent.DragDropped) },
-                onDragCancelled = { onIntent(GridIntent.DragCancelled) },
+                onDragEnded = { accepted -> onIntent(GridIntent.DragEnded(accepted)) },
                 onAppTapped = { app ->
                   gestureClaimedByTile.value = true
                   onIntent(GridIntent.AppTapped(app))
@@ -214,7 +230,7 @@ private fun AppGridContent(
               },
               onDragMovedToSlot = { index -> onIntent(GridIntent.DragMovedToQuickBarSlot(index)) },
               onDragDropped = { onIntent(GridIntent.DragDropped) },
-              onDragCancelled = { onIntent(GridIntent.DragCancelled) },
+              onDragEnded = { accepted -> onIntent(GridIntent.DragEnded(accepted)) },
               onAppTapped = { app ->
                 gestureClaimedByTile.value = true
                 onIntent(GridIntent.AppTapped(app))
@@ -233,7 +249,6 @@ private fun AppGridContent(
         }
       }
     }
-
     AppGridMenu(
         isVisible = state.isGridMenuVisible,
         offset = state.gridMenuOffset,
@@ -279,10 +294,4 @@ private fun AppGridContentPreview() {
   val grid = Grid(spec = previewSpec, grid = pages, bar = previewApps.take(previewSpec.cols))
   val state = GridScreenState(persistedGrid = grid)
   AppTheme { AppGridContent(state = state, isDefaultLauncher = false, onIntent = {}) }
-}
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 640)
-@Composable
-private fun AppGridContentLoadingPreview() {
-  AppTheme { AppGridContent(state = GridScreenState(), isDefaultLauncher = false, onIntent = {}) }
 }

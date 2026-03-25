@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
@@ -40,8 +40,6 @@ import io.engst.launcher.ui.shared.spacing
 import io.engst.launcher.ui.shared.previewApps
 import io.engst.launcher.ui.shared.previewPage
 import io.engst.launcher.ui.shared.previewSpec
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -54,12 +52,13 @@ fun AppGridPage(
     draggingAppId: String?,
     activeAppMenuIdentifier: String?,
     pagerContainerCoordinates: LayoutCoordinates?,
-    pagerState: PagerState,
-    coroutineScope: CoroutineScope,
+    currentPagerPage: Int,
+    pagerPageCount: Int,
     onDragStarted: (appId: String) -> Unit,
     onDragMovedToCell: (pageIndex: Int, cell: Cell) -> Unit,
+    onDragPointerMovedInPager: (pointerXInPager: Float, pagerWidth: Float, currentPage: Int, pageCount: Int) -> Unit,
     onDragDropped: () -> Unit,
-    onDragCancelled: () -> Unit,
+    onDragEnded: (accepted: Boolean) -> Unit,
     onAppTapped: (App) -> Unit,
     onAppMenuRequested: (appId: String) -> Unit,
     onAppMenuDismissed: () -> Unit,
@@ -85,16 +84,12 @@ fun AppGridPage(
 
                 val pagerCoords = pagerContainerCoordinates ?: return
                 val pagerLocalOffset = pagerCoords.localOffsetOf(event) ?: return
-                val pagerWidth = pagerCoords.size.width.toFloat()
-                val targetPage = detectEdgeScrollTarget(
-                    pointerXInPager = pagerLocalOffset.x,
-                    pagerWidth = pagerWidth,
-                    currentPage = pagerState.currentPage,
-                    pageCount = pagerState.pageCount,
-                ) ?: return
-                if (!pagerState.isScrollInProgress) {
-                    coroutineScope.launch { pagerState.animateScrollToPage(targetPage) }
-                }
+                onDragPointerMovedInPager(
+                    pagerLocalOffset.x,
+                    pagerCoords.size.width.toFloat(),
+                    currentPagerPage,
+                    pagerPageCount,
+                )
             }
 
             override fun onDrop(event: DragAndDropEvent): Boolean {
@@ -103,7 +98,7 @@ fun AppGridPage(
             }
 
             override fun onEnded(event: DragAndDropEvent) {
-                onDragCancelled()
+                onDragEnded(event.toAndroidDragEvent().result)
             }
         }
     }
@@ -182,12 +177,13 @@ private fun AppGridPagePreview() {
             draggingAppId = null,
             activeAppMenuIdentifier = null,
             pagerContainerCoordinates = null,
-            pagerState = pagerState,
-            coroutineScope = coroutineScope,
+            currentPagerPage = pagerState.currentPage,
+            pagerPageCount = pagerState.pageCount,
             onDragStarted = {},
             onDragMovedToCell = { _, _ -> },
+            onDragPointerMovedInPager = { _, _, _, _ -> },
             onDragDropped = {},
-            onDragCancelled = {},
+            onDragEnded = {},
             onAppTapped = {},
             onAppMenuRequested = {},
             onAppMenuDismissed = {},
