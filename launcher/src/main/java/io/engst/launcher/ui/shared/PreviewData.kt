@@ -11,7 +11,7 @@ import androidx.core.graphics.drawable.toDrawable
 fun previewApp(id: String, label: String = id) = App(
     id = id,
     label = label,
-    icon = android.graphics.Color.MAGENTA.toDrawable(),
+    icon = android.graphics.Color.LTGRAY.toDrawable(),
     componentName = ComponentName("pkg.$id", "cls.$id"),
     launchIntent = Intent(),
     shortcuts = emptyList(),

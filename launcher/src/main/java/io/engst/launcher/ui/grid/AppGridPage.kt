@@ -51,7 +51,6 @@ fun AppGridPage(
     columns: Int,
     cellHeight: Dp,
     iconSizeDp: Dp,
-    spacing: Dp,
     draggingAppId: String?,
     activeAppMenuIdentifier: String?,
     pagerContainerCoordinates: LayoutCoordinates?,
@@ -67,6 +66,7 @@ fun AppGridPage(
     onAppDetails: (App) -> Unit,
     onAppRemoval: (App) -> Unit,
     onShortcutLaunch: (ShortcutInfo) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val gridCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
     val cellBounds = remember { mutableStateMapOf<Cell, Rect>() }
@@ -109,7 +109,7 @@ fun AppGridPage(
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .onPlaced { coordinates -> gridCoordinates.value = coordinates }
             .dragAndDropTarget(
@@ -119,7 +119,7 @@ fun AppGridPage(
     ) {
         rows.forEach { rowEntries ->
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 rowEntries.forEach { (cell, app) ->
                     if (app == null) {
@@ -166,7 +166,7 @@ fun AppGridPage(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-@Preview(showBackground = true, widthDp = 360, heightDp = 480, backgroundColor = 0xFF333333)
+@Preview(showBackground = true, widthDp = 400, heightDp = 500, backgroundColor = 0xFF333333)
 @Composable
 private fun AppGridPagePreview() {
     val page = previewPage(apps = previewApps)
@@ -179,7 +179,6 @@ private fun AppGridPagePreview() {
             columns = previewSpec.cols,
             cellHeight = 120.dp,
             iconSizeDp = ICON_SIZE,
-            spacing = MaterialTheme.spacing.medium,
             draggingAppId = null,
             activeAppMenuIdentifier = null,
             pagerContainerCoordinates = null,
