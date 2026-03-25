@@ -10,6 +10,8 @@ import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.data.AppsRepositoryImpl
 import io.engst.launcher.data.proto.GridDataProto
 import io.engst.launcher.data.store.GridDataProtoSerializer
+import io.engst.launcher.ui.grid.GridEffectHandler
+import io.engst.launcher.ui.grid.GridEffectHandlerImpl
 import io.engst.launcher.ui.grid.GridViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -25,7 +27,8 @@ val rootModule = module {
         )
     }
     single<AppsRepository> { AppsRepositoryImpl(androidContext(), get()) }
-    viewModel { GridViewModel(get()) }
+    single<GridEffectHandler> { GridEffectHandlerImpl(androidContext()) }
+    viewModel { GridViewModel(get(), get()) }
 }
 
 class LauncherApp : Application(), Logging by scopedLogger("LauncherApp") {

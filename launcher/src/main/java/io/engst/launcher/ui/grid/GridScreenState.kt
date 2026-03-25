@@ -68,16 +68,3 @@ sealed interface GridIntent {
     object SwipeDownDetected : GridIntent
     object SwipeUpDetected : GridIntent
 }
-
-sealed interface GridEffect {
-    data class LaunchApp(val app: App) : GridEffect
-    data class OpenAppDetails(val app: App) : GridEffect
-    data class RemoveApp(val app: App) : GridEffect
-    data class LaunchShortcut(val shortcut: ShortcutInfo) : GridEffect
-    object OpenAppManager : GridEffect
-    object OpenDefaultLauncherSettings : GridEffect
-    data class NavigateToPage(val pageIndex: Int) : GridEffect
-    object ShowResetDefaultsSnackbar : GridEffect
-    object ExpandNotificationsPanel : GridEffect
-    object OpenSearch : GridEffect
-}

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,52 +16,46 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import io.engst.core.scopedLogger
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import android.content.Context
-import io.engst.core.apps.launchActivity
-import io.engst.launcher.core.launchAppDetails
-import io.engst.launcher.core.launchAppRemovalRequest
-import io.engst.launcher.core.launchShortcut
-import io.engst.launcher.model.GridSpec
+import io.engst.core.scopedLogger
+import io.engst.launcher.model.Grid
 import io.engst.launcher.ui.grid.drag.GestureResult
 import io.engst.launcher.ui.grid.drag.awaitLongPressOrSwipeOrTap
 import io.engst.launcher.ui.shared.LocalWallpaperState
-import io.engst.launcher.ui.shared.rememberScreenInfo
-import androidx.compose.ui.tooling.preview.Preview
+import io.engst.launcher.ui.shared.AppTheme
+import io.engst.launcher.ui.shared.previewApps
+import io.engst.launcher.ui.shared.previewPage
+import io.engst.launcher.ui.shared.previewSpec
+import io.engst.launcher.ui.shared.spacing
 import org.koin.androidx.compose.koinViewModel
 
 private val logger = scopedLogger("AppGrid")
-private val ICON_SIZE_DP = 60.dp
-private val SPACING_DP = 12.dp
+val ICON_SIZE = 60.dp
 
 @Composable
 fun AppGrid(
     modifier: Modifier = Modifier,
     isDefaultLauncher: Boolean = false,
     viewModel: GridViewModel = koinViewModel(),
-    onNavigateToAppManager: () -> Unit,
-    onSetDefaultLauncher: () -> Unit,
-    onShowResetDefaultsSnackbar: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -70,23 +63,25 @@ fun AppGrid(
         viewModel.onIntent(GridIntent.DragDropped)
     }
 
-    val context = LocalContext.current
+    AppGridContent(
+        state = state,
+        isDefaultLauncher = isDefaultLauncher,
+        onIntent = viewModel::onIntent,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun AppGridContent(
+    state: GridScreenState,
+    isDefaultLauncher: Boolean,
+    onIntent: (GridIntent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val density = LocalDensity.current
     val viewConfiguration = LocalViewConfiguration.current
-    val screenInfo = rememberScreenInfo()
     val coroutineScope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        viewModel.effects.collect { effect ->
-            handleEffect(
-                effect = effect,
-                context = context,
-                onNavigateToAppManager = onNavigateToAppManager,
-                onSetDefaultLauncher = onSetDefaultLauncher,
-                onShowResetDefaultsSnackbar = onShowResetDefaultsSnackbar,
-            )
-        }
-    }
+    val spacing = MaterialTheme.spacing
 
     val displayGrid = state.displayGrid
     if (displayGrid == null || displayGrid.grid.isEmpty()) {
@@ -99,7 +94,7 @@ fun AppGrid(
         return
     }
 
-    val spacingPx = with(density) { SPACING_DP.roundToPx() }
+    val spacingPx = with(density) { spacing.medium.roundToPx() }
     val pagerState = rememberPagerState { displayGrid.grid.size }
     val pagerContainerCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
     val gestureClaimedByTile = remember { mutableStateOf(false) }
@@ -122,21 +117,21 @@ fun AppGrid(
                             val position = down.position
                             val offset = with(density) { DpOffset(position.x.toDp(), position.y.toDp()) }
                             logger.logDebug { "long press on empty space — opening grid menu" }
-                            viewModel.onIntent(GridIntent.GridMenuRequested(offset))
+                            onIntent(GridIntent.GridMenuRequested(offset))
                         }
                     }
                 }
             }
             .homeScreenSwipeGestures(
-                onSwipeDown = { viewModel.onIntent(GridIntent.SwipeDownDetected) },
-                onSwipeUp = { viewModel.onIntent(GridIntent.SwipeUpDetected) },
+                onSwipeDown = { onIntent(GridIntent.SwipeDownDetected) },
+                onSwipeUp = { onIntent(GridIntent.SwipeUpDetected) },
             ),
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val cellHeight = calculateCellHeight(
                 totalHeight = maxHeight,
                 rows = displayGrid.spec.rows,
-                spacing = SPACING_DP,
+                spacing = spacing.medium,
                 barVisible = state.isBarVisible,
             )
 
@@ -153,9 +148,9 @@ fun AppGrid(
                 ) {
                     val pagerContentPadding = remember(state.isInDragMode) {
                         if (state.isInDragMode) {
-                            PaddingValues(horizontal = SPACING_DP, vertical = SPACING_DP)
+                            PaddingValues(horizontal = spacing.large, vertical = spacing.medium)
                         } else {
-                            PaddingValues(vertical = SPACING_DP)
+                            PaddingValues(horizontal = spacing.medium, vertical = spacing.medium)
                         }
                     }
                     HorizontalPager(
@@ -171,35 +166,32 @@ fun AppGrid(
                             page = displayGrid.grid[pageIndex],
                             columns = displayGrid.spec.cols,
                             cellHeight = cellHeight,
-                            iconSizeDp = ICON_SIZE_DP,
-                            spacing = SPACING_DP,
+                            iconSizeDp = ICON_SIZE,
+                            spacing = spacing.medium,
                             draggingAppId = state.draggingAppId,
                             activeAppMenuIdentifier = state.activeAppMenuIdentifier,
-                            density = density,
-                            viewConfiguration = viewConfiguration,
-                            screenInfo = screenInfo,
                             pagerContainerCoordinates = pagerContainerCoordinates.value,
                             pagerState = pagerState,
                             coroutineScope = coroutineScope,
                             onDragStarted = { appId ->
                                 gestureClaimedByTile.value = true
-                                viewModel.onIntent(GridIntent.DragStarted(appId))
+                                onIntent(GridIntent.DragStarted(appId))
                             },
-                            onDragMovedToCell = { page, cell -> viewModel.onIntent(GridIntent.DragMovedToGridCell(page, cell)) },
-                            onDragDropped = { viewModel.onIntent(GridIntent.DragDropped) },
-                            onDragCancelled = { viewModel.onIntent(GridIntent.DragCancelled) },
+                            onDragMovedToCell = { page, cell -> onIntent(GridIntent.DragMovedToGridCell(page, cell)) },
+                            onDragDropped = { onIntent(GridIntent.DragDropped) },
+                            onDragCancelled = { onIntent(GridIntent.DragCancelled) },
                             onAppTapped = { app ->
                                 gestureClaimedByTile.value = true
-                                viewModel.onIntent(GridIntent.AppTapped(app))
+                                onIntent(GridIntent.AppTapped(app))
                             },
                             onAppMenuRequested = { appId ->
                                 gestureClaimedByTile.value = true
-                                viewModel.onIntent(GridIntent.AppMenuRequested(appId))
+                                onIntent(GridIntent.AppMenuRequested(appId))
                             },
-                            onAppMenuDismissed = { viewModel.onIntent(GridIntent.AppMenuDismissed) },
-                            onAppDetails = { app -> viewModel.onIntent(GridIntent.AppDetailsRequested(app)) },
-                            onAppRemoval = { app -> viewModel.onIntent(GridIntent.AppRemovalRequested(app)) },
-                            onShortcutLaunch = { shortcut -> viewModel.onIntent(GridIntent.ShortcutLaunchRequested(shortcut)) },
+                            onAppMenuDismissed = { onIntent(GridIntent.AppMenuDismissed) },
+                            onAppDetails = { app -> onIntent(GridIntent.AppDetailsRequested(app)) },
+                            onAppRemoval = { app -> onIntent(GridIntent.AppRemovalRequested(app)) },
+                            onShortcutLaunch = { shortcut -> onIntent(GridIntent.ShortcutLaunchRequested(shortcut)) },
                         )
                     }
                 }
@@ -207,41 +199,38 @@ fun AppGrid(
                 if (pagerState.pageCount > 0) {
                     PagerPageIndicator(
                         pagerState = pagerState,
-                        modifier = Modifier.fillMaxWidth().height(SPACING_DP),
+                        modifier = Modifier.fillMaxWidth().height(spacing.medium),
                     )
                 }
-
-                Spacer(Modifier.size(SPACING_DP))
 
                 if (state.isBarVisible) {
                     AppGridQuickBar(
                         apps = displayGrid.bar,
+                        columns = displayGrid.spec.cols,
                         cellHeight = cellHeight,
-                        iconSizeDp = ICON_SIZE_DP,
-                        spacing = SPACING_DP,
+                        iconSizeDp = ICON_SIZE,
+                        spacing = spacing.medium,
                         draggingAppId = state.draggingAppId,
                         activeAppMenuIdentifier = state.activeAppMenuIdentifier,
-                        density = density,
-                        viewConfiguration = viewConfiguration,
                         onDragStarted = { appId ->
                             gestureClaimedByTile.value = true
-                            viewModel.onIntent(GridIntent.DragStarted(appId))
+                            onIntent(GridIntent.DragStarted(appId))
                         },
-                        onDragMovedToSlot = { index -> viewModel.onIntent(GridIntent.DragMovedToQuickBarSlot(index)) },
-                        onDragDropped = { viewModel.onIntent(GridIntent.DragDropped) },
-                        onDragCancelled = { viewModel.onIntent(GridIntent.DragCancelled) },
+                        onDragMovedToSlot = { index -> onIntent(GridIntent.DragMovedToQuickBarSlot(index)) },
+                        onDragDropped = { onIntent(GridIntent.DragDropped) },
+                        onDragCancelled = { onIntent(GridIntent.DragCancelled) },
                         onAppTapped = { app ->
                             gestureClaimedByTile.value = true
-                            viewModel.onIntent(GridIntent.AppTapped(app))
+                            onIntent(GridIntent.AppTapped(app))
                         },
                         onAppMenuRequested = { appId ->
                             gestureClaimedByTile.value = true
-                            viewModel.onIntent(GridIntent.AppMenuRequested(appId))
+                            onIntent(GridIntent.AppMenuRequested(appId))
                         },
-                        onAppMenuDismissed = { viewModel.onIntent(GridIntent.AppMenuDismissed) },
-                        onAppDetails = { app -> viewModel.onIntent(GridIntent.AppDetailsRequested(app)) },
-                        onAppRemoval = { app -> viewModel.onIntent(GridIntent.AppRemovalRequested(app)) },
-                        onShortcutLaunch = { shortcut -> viewModel.onIntent(GridIntent.ShortcutLaunchRequested(shortcut)) },
+                        onAppMenuDismissed = { onIntent(GridIntent.AppMenuDismissed) },
+                        onAppDetails = { app -> onIntent(GridIntent.AppDetailsRequested(app)) },
+                        onAppRemoval = { app -> onIntent(GridIntent.AppRemovalRequested(app)) },
+                        onShortcutLaunch = { shortcut -> onIntent(GridIntent.ShortcutLaunchRequested(shortcut)) },
                     )
                 }
             }
@@ -251,16 +240,16 @@ fun AppGrid(
             isVisible = state.isGridMenuVisible,
             offset = state.gridMenuOffset,
             isDefaultLauncher = isDefaultLauncher,
-            currentGridSpec = displayGrid?.spec ?: GridSpec(4, 4),
+            currentGridSpec = displayGrid.spec,
             darkModePreference = state.darkModePreference,
             isBarVisible = state.isBarVisible,
-            onDismissRequest = { viewModel.onIntent(GridIntent.GridMenuDismissed) },
-            onAppsListRequested = { viewModel.onIntent(GridIntent.AppManagerOpenRequested) },
-            onSetDefaultLauncherRequested = { viewModel.onIntent(GridIntent.DefaultLauncherSettingsOpenRequested) },
-            onResetDefaultsRequested = { viewModel.onIntent(GridIntent.ResetDefaultsRequested) },
-            onGridSpecSelected = { spec -> viewModel.onIntent(GridIntent.GridSpecChangeRequested(spec)) },
-            onDarkModeChanged = { pref -> viewModel.onIntent(GridIntent.DarkModeChanged(pref)) },
-            onBarVisibilityChanged = { visible -> viewModel.onIntent(GridIntent.BarVisibilityChanged(visible)) },
+            onDismissRequest = { onIntent(GridIntent.GridMenuDismissed) },
+            onAppsListRequested = { onIntent(GridIntent.AppManagerOpenRequested) },
+            onSetDefaultLauncherRequested = { onIntent(GridIntent.DefaultLauncherSettingsOpenRequested) },
+            onResetDefaultsRequested = { onIntent(GridIntent.ResetDefaultsRequested) },
+            onGridSpecSelected = { spec -> onIntent(GridIntent.GridSpecChangeRequested(spec)) },
+            onDarkModeChanged = { pref -> onIntent(GridIntent.DarkModeChanged(pref)) },
+            onBarVisibilityChanged = { visible -> onIntent(GridIntent.BarVisibilityChanged(visible)) },
         )
     }
 }
@@ -284,45 +273,36 @@ private fun buildPageSize(isDragMode: Boolean, spacingPx: Int): PageSize =
             if (isDragMode) availableSpace - spacingPx * 2 else availableSpace
     }
 
-@Suppress("DEPRECATION")
-private fun handleEffect(
-    effect: GridEffect,
-    context: android.content.Context,
-    onNavigateToAppManager: () -> Unit,
-    onSetDefaultLauncher: () -> Unit,
-    onShowResetDefaultsSnackbar: () -> Unit,
-) {
-    when (effect) {
-        is GridEffect.LaunchApp -> context.launchActivity(effect.app.componentName)
-        is GridEffect.OpenAppDetails -> context.launchAppDetails(effect.app.componentName.packageName)
-        is GridEffect.RemoveApp -> context.launchAppRemovalRequest(effect.app.componentName.packageName)
-        is GridEffect.LaunchShortcut -> context.launchShortcut(effect.shortcut)
-        is GridEffect.OpenAppManager -> onNavigateToAppManager()
-        is GridEffect.OpenDefaultLauncherSettings -> onSetDefaultLauncher()
-        is GridEffect.NavigateToPage -> { /* handled by pager directly in AppGridPage */ }
-        is GridEffect.ShowResetDefaultsSnackbar -> onShowResetDefaultsSnackbar()
-        is GridEffect.ExpandNotificationsPanel -> expandNotificationsPanel(context)
-        is GridEffect.OpenSearch -> { /* stub — wired to EPIC-008 search when implemented */ }
+@Preview(showBackground = true, widthDp = 360, heightDp = 640, backgroundColor = 0xFF333333)
+@Composable
+private fun AppGridContentPreview() {
+    val cellsPerPage = previewSpec.cols * previewSpec.rows
+    val pages = previewApps.chunked(cellsPerPage).map { appsOnPage ->
+        previewPage(apps = appsOnPage)
+    }
+    val grid = Grid(
+        spec = previewSpec,
+        grid = pages,
+        bar = previewApps.take(previewSpec.cols),
+    )
+    val state = GridScreenState(persistedGrid = grid)
+    AppTheme {
+        AppGridContent(
+            state = state,
+            isDefaultLauncher = false,
+            onIntent = {},
+        )
     }
 }
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
-private fun AppGridLoadingPreview() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(modifier = Modifier.size(108.dp))
-    }
-}
-
-@Suppress("DEPRECATION")
-private fun expandNotificationsPanel(context: android.content.Context) {
-    try {
-        val statusBarService = context.getSystemService("statusbar")
-        statusBarService?.javaClass
-            ?.getMethod("expandNotificationsPanel")
-            ?.invoke(statusBarService)
-    } catch (e: Exception) {
-        io.engst.core.scopedLogger("AppGrid")
-            .logWarn { "expandNotificationsPanel failed: ${e.message}" }
+private fun AppGridContentLoadingPreview() {
+    AppTheme {
+        AppGridContent(
+            state = GridScreenState(),
+            isDefaultLauncher = false,
+            onIntent = {},
+        )
     }
 }

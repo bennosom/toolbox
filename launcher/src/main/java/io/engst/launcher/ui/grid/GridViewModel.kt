@@ -10,24 +10,19 @@ import io.engst.launcher.model.DragDestination
 import io.engst.launcher.model.applyDragMove
 import io.engst.launcher.model.collapseEmptyPages
 import io.engst.launcher.ui.grid.drag.DragPhase
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GridViewModel(
     private val repository: AppsRepository,
+    private val effectHandler: GridEffectHandler,
 ) : ViewModel(), Logging by scopedLogger("GridViewModel") {
 
     private val _uiState = MutableStateFlow(GridScreenState())
     val uiState: StateFlow<GridScreenState> = _uiState.asStateFlow()
-
-    private val _effects = MutableSharedFlow<GridEffect>(extraBufferCapacity = 16)
-    val effects: SharedFlow<GridEffect> = _effects.asSharedFlow()
 
     init {
         logInfo { "initialised — subscribing to repository grid" }
@@ -78,21 +73,21 @@ class GridViewModel(
             is GridIntent.GridSpecChangeRequested -> {
                 repository.setGridSpec(intent.spec)
             }
-            is GridIntent.AppDetailsRequested -> emitEffect(GridEffect.OpenAppDetails(intent.app))
-            is GridIntent.AppRemovalRequested -> emitEffect(GridEffect.RemoveApp(intent.app))
-            is GridIntent.ShortcutLaunchRequested -> emitEffect(GridEffect.LaunchShortcut(intent.shortcut))
+            is GridIntent.AppDetailsRequested -> effectHandler.openAppDetails(intent.app)
+            is GridIntent.AppRemovalRequested -> effectHandler.removeApp(intent.app)
+            is GridIntent.ShortcutLaunchRequested -> effectHandler.launchShortcut(intent.shortcut)
             is GridIntent.AppManagerOpenRequested -> {
                 _uiState.update { it.copy(isGridMenuVisible = false) }
-                emitEffect(GridEffect.OpenAppManager)
+                effectHandler.openAppManager()
             }
             is GridIntent.DefaultLauncherSettingsOpenRequested -> {
                 _uiState.update { it.copy(isGridMenuVisible = false) }
-                emitEffect(GridEffect.OpenDefaultLauncherSettings)
+                effectHandler.openDefaultLauncherSettings()
             }
             is GridIntent.ResetDefaultsRequested -> {
                 logDebug { "reset defaults requested — showing undo snackbar" }
                 _uiState.update { it.copy(isGridMenuVisible = false) }
-                emitEffect(GridEffect.ShowResetDefaultsSnackbar)
+                effectHandler.showResetDefaultsSnackbar()
             }
             is GridIntent.ResetDefaultsConfirmed -> {
                 logDebug { "reset defaults confirmed — persisting" }
@@ -114,11 +109,11 @@ class GridViewModel(
             }
             is GridIntent.SwipeDownDetected -> {
                 logDebug { "swipe down — expanding notifications panel" }
-                emitEffect(GridEffect.ExpandNotificationsPanel)
+                effectHandler.expandNotificationsPanel()
             }
             is GridIntent.SwipeUpDetected -> {
                 logDebug { "swipe up — search placeholder (no-op)" }
-                emitEffect(GridEffect.OpenSearch)
+                effectHandler.openSearch()
             }
         }
     }
@@ -181,12 +176,6 @@ class GridViewModel(
 
     private fun handleAppTapped(intent: GridIntent.AppTapped) {
         _uiState.update { it.copy(activeAppMenuIdentifier = null, isGridMenuVisible = false) }
-        emitEffect(GridEffect.LaunchApp(intent.app))
-    }
-
-    private fun emitEffect(effect: GridEffect) {
-        logDebug { "emitEffect: $effect" }
-        val emitted = _effects.tryEmit(effect)
-        if (!emitted) logWarn { "effect dropped — buffer full: $effect" }
+        effectHandler.launchApp(intent.app)
     }
 }

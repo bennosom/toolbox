@@ -40,13 +40,15 @@ class GridViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var fakeRepository: FakeAppsRepository
+    private lateinit var fakeEffectHandler: FakeGridEffectHandler
     private lateinit var viewModel: GridViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeAppsRepository()
-        viewModel = GridViewModel(fakeRepository)
+        fakeEffectHandler = FakeGridEffectHandler()
+        viewModel = GridViewModel(fakeRepository, fakeEffectHandler)
     }
 
     @After
@@ -514,6 +516,20 @@ class GridViewModelTest {
     // ---------------------------------------------------------------------------
     // Fake repository
     // ---------------------------------------------------------------------------
+
+    private class FakeGridEffectHandler : GridEffectHandler {
+        val effects = mutableListOf<String>()
+
+        override fun launchApp(app: App) { effects += "LaunchApp(${app.id})" }
+        override fun openAppDetails(app: App) { effects += "OpenAppDetails(${app.id})" }
+        override fun removeApp(app: App) { effects += "RemoveApp(${app.id})" }
+        override fun launchShortcut(shortcut: android.content.pm.ShortcutInfo) { effects += "LaunchShortcut" }
+        override fun openAppManager() { effects += "OpenAppManager" }
+        override fun openDefaultLauncherSettings() { effects += "OpenDefaultLauncherSettings" }
+        override fun showResetDefaultsSnackbar() { effects += "ShowResetDefaultsSnackbar" }
+        override fun expandNotificationsPanel() { effects += "ExpandNotificationsPanel" }
+        override fun openSearch() { effects += "OpenSearch" }
+    }
 
     private class FakeAppsRepository : AppsRepository {
         private val gridFlow = MutableSharedFlow<Grid>(replay = 1)

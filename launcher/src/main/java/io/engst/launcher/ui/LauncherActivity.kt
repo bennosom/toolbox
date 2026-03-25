@@ -14,14 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,11 +41,13 @@ import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchDefaultAppSettings
 import io.engst.launcher.data.AppsRepository
 import io.engst.launcher.ui.grid.AppGrid
+import io.engst.launcher.ui.grid.GridEffectHandler
+import io.engst.launcher.ui.grid.GridEffectHandlerImpl
 import io.engst.launcher.ui.grid.GridIntent
 import io.engst.launcher.ui.grid.GridViewModel
 import io.engst.launcher.ui.manager.AppManager
+import io.engst.launcher.ui.shared.AppTheme
 import io.engst.launcher.ui.shared.DarkModePreference
-import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.SyncWallpaperToSystemBars
 import io.engst.launcher.ui.shared.rememberWallpaperState
 import kotlinx.coroutines.launch
@@ -83,18 +83,40 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
        }
        val wallpaperState = rememberWallpaperState(darkMode)
        SyncWallpaperToSystemBars(wallpaperState)
-       CompositionLocalProvider(LocalWallpaperState provides wallpaperState) {
-          MaterialTheme(
-             colorScheme =
-                if (darkMode) dynamicDarkColorScheme(context)
-                else dynamicLightColorScheme(context)
-          ) {
+       AppTheme(
+          colorScheme =
+             if (darkMode) dynamicDarkColorScheme(context)
+             else dynamicLightColorScheme(context),
+          wallpaperState = wallpaperState,
+       ) {
           Box(modifier = Modifier.fillMaxSize()) {
              val repository: AppsRepository by inject()
              val scope = rememberCoroutineScope()
              val snackbarHostState = remember { SnackbarHostState() }
 
              var showAppManager by remember { mutableStateOf(false) }
+
+             val effectHandler: GridEffectHandler by inject()
+             (effectHandler as GridEffectHandlerImpl).apply {
+                onNavigateToAppManager = { showAppManager = true }
+                onSetDefaultLauncher = { context.launchDefaultAppSettings() }
+                onShowResetDefaultsSnackbar = {
+                   scope.launch {
+                      val result = snackbarHostState.showSnackbar(
+                         message = "Layout reset to defaults",
+                         actionLabel = "Undo",
+                         duration = SnackbarDuration.Short,
+                      )
+                      when (result) {
+                         SnackbarResult.ActionPerformed ->
+                            gridViewModel.onIntent(GridIntent.ResetDefaultsUndone)
+                         SnackbarResult.Dismissed ->
+                            gridViewModel.onIntent(GridIntent.ResetDefaultsConfirmed)
+                      }
+                   }
+                }
+             }
+
              if (showAppManager) {
                 AppManager(
                    modifier = Modifier
@@ -115,23 +137,6 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
                       .safeDrawingPadding(),
                    isDefaultLauncher = isDefaultHomeState.value,
                    viewModel = gridViewModel,
-                   onNavigateToAppManager = { showAppManager = true },
-                   onSetDefaultLauncher = { context.launchDefaultAppSettings() },
-                   onShowResetDefaultsSnackbar = {
-                      scope.launch {
-                         val result = snackbarHostState.showSnackbar(
-                            message = "Layout reset to defaults",
-                            actionLabel = "Undo",
-                            duration = SnackbarDuration.Short,
-                         )
-                         when (result) {
-                            SnackbarResult.ActionPerformed ->
-                               gridViewModel.onIntent(GridIntent.ResetDefaultsUndone)
-                            SnackbarResult.Dismissed ->
-                               gridViewModel.onIntent(GridIntent.ResetDefaultsConfirmed)
-                         }
-                      }
-                   },
                 )
              }
 
@@ -159,7 +164,6 @@ class LauncherActivity : ComponentActivity(), Logging by scopedLogger("LauncherA
              ) {
                 SnackbarHost(hostState = snackbarHostState)
              }
-          }
           }
        }
     }

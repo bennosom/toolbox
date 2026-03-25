@@ -4,11 +4,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.drawable.ColorDrawable
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,9 +16,8 @@ import io.engst.launcher.model.App
 import io.engst.launcher.model.Cell
 import io.engst.launcher.model.Grid
 import io.engst.launcher.model.GridSpec
+import io.engst.launcher.ui.shared.AppTheme
 import io.engst.launcher.ui.shared.DarkModePreference
-import io.engst.launcher.ui.shared.LocalWallpaperState
-import io.engst.launcher.ui.shared.WallpaperState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -61,13 +57,15 @@ class AppGridGestureIntegrationTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var fakeRepository: FakeAppsRepository
+    private lateinit var fakeEffectHandler: FakeGridEffectHandler
     private lateinit var viewModel: GridViewModel
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fakeRepository = FakeAppsRepository()
-        viewModel = GridViewModel(fakeRepository)
+        fakeEffectHandler = FakeGridEffectHandler()
+        viewModel = GridViewModel(fakeRepository, fakeEffectHandler)
     }
 
     @After
@@ -116,22 +114,12 @@ class AppGridGestureIntegrationTest {
 
     private fun setContent() {
         composeTestRule.setContent {
-            CompositionLocalProvider(
-                LocalWallpaperState provides WallpaperState(
-                    isLight = false,
-                    suggestedForegroundColor = Color.White,
-                ),
-            ) {
-                MaterialTheme {
-                    AppGrid(
-                        modifier = Modifier.fillMaxSize(),
-                        isDefaultLauncher = true,
-                        viewModel = viewModel,
-                        onNavigateToAppManager = {},
-                        onSetDefaultLauncher = {},
-                        onShowResetDefaultsSnackbar = {},
-                    )
-                }
+            AppTheme {
+                AppGrid(
+                    modifier = Modifier.fillMaxSize(),
+                    isDefaultLauncher = true,
+                    viewModel = viewModel,
+                )
             }
         }
     }
@@ -431,6 +419,18 @@ class AppGridGestureIntegrationTest {
     // -----------------------------------------------------------------------
     // Fake repository
     // -----------------------------------------------------------------------
+
+    private class FakeGridEffectHandler : GridEffectHandler {
+        override fun launchApp(app: App) {}
+        override fun openAppDetails(app: App) {}
+        override fun removeApp(app: App) {}
+        override fun launchShortcut(shortcut: android.content.pm.ShortcutInfo) {}
+        override fun openAppManager() {}
+        override fun openDefaultLauncherSettings() {}
+        override fun showResetDefaultsSnackbar() {}
+        override fun expandNotificationsPanel() {}
+        override fun openSearch() {}
+    }
 
     private class FakeAppsRepository : AppsRepository {
         private val gridFlow = MutableSharedFlow<Grid>(replay = 1)
