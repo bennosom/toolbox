@@ -5,9 +5,6 @@ package io.engst.launcher.ui.grid
 import android.content.pm.ShortcutInfo
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
-import androidx.compose.foundation.indication
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,33 +13,33 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import io.engst.launcher.model.App
 import io.engst.launcher.model.Cell
-import io.engst.launcher.ui.grid.drag.draggableAppSource
-import io.engst.launcher.ui.shared.ScreenInfo
+import io.engst.launcher.ui.shared.AppTheme
 import io.engst.launcher.ui.shared.localOffsetOf
+import io.engst.launcher.ui.shared.spacing
+import io.engst.launcher.ui.shared.previewApps
+import io.engst.launcher.ui.shared.previewPage
+import io.engst.launcher.ui.shared.previewSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -57,9 +54,6 @@ fun AppGridPage(
     spacing: Dp,
     draggingAppId: String?,
     activeAppMenuIdentifier: String?,
-    density: Density,
-    viewConfiguration: ViewConfiguration,
-    screenInfo: ScreenInfo,
     pagerContainerCoordinates: LayoutCoordinates?,
     pagerState: PagerState,
     coroutineScope: CoroutineScope,
@@ -115,10 +109,8 @@ fun AppGridPage(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(spacing),
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = spacing)
             .onPlaced { coordinates -> gridCoordinates.value = coordinates }
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { it.mimeTypes().contains("text/vnd.android.intent") },
@@ -127,8 +119,7 @@ fun AppGridPage(
     ) {
         rows.forEach { rowEntries ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp),
             ) {
                 rowEntries.forEach { (cell, app) ->
                     if (app == null) {
@@ -136,7 +127,6 @@ fun AppGridPage(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(cellHeight)
-                                .clip(MaterialTheme.shapes.small)
                                 .onPlaced { coords ->
                                     val gridCoords = gridCoordinates.value ?: return@onPlaced
                                     val topLeft = gridCoords.localPositionOf(coords, Offset.Zero)
@@ -159,9 +149,6 @@ fun AppGridPage(
                                 iconSizeDp = iconSizeDp,
                                 draggingAppId = draggingAppId,
                                 activeAppMenuIdentifier = activeAppMenuIdentifier,
-                                density = density,
-                                viewConfiguration = viewConfiguration,
-                                screenInfo = screenInfo,
                                 onDragStarted = onDragStarted,
                                 onAppTapped = onAppTapped,
                                 onAppMenuRequested = onAppMenuRequested,
@@ -178,75 +165,37 @@ fun AppGridPage(
     }
 }
 
-
-
 @OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun AppTileContainer(
-    app: App,
-    iconSizeDp: Dp,
-    draggingAppId: String?,
-    activeAppMenuIdentifier: String?,
-    density: Density,
-    viewConfiguration: ViewConfiguration,
-    screenInfo: ScreenInfo,
-    onDragStarted: (appId: String) -> Unit,
-    onAppTapped: (App) -> Unit,
-    onAppMenuRequested: (appId: String) -> Unit,
-    onAppMenuDismissed: () -> Unit,
-    onAppDetails: (App) -> Unit,
-    onAppRemoval: (App) -> Unit,
-    onShortcutLaunch: (ShortcutInfo) -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag("app_tile_${app.id}")
-            .clip(MaterialTheme.shapes.small)
-            .indication(interactionSource, ripple())
-            .draggableAppSource(
-                app = app,
-                iconSizeDp = iconSizeDp,
-                density = density,
-                viewConfiguration = viewConfiguration,
-                interactionSource = interactionSource,
-                onTap = { onAppTapped(app) },
-                onLongPress = { onAppMenuRequested(app.id) },
-                onDragStarted = { onDragStarted(app.id) },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (draggingAppId == app.id) {
-            DropIndicator(modifier = Modifier.fillMaxSize())
-        } else {
-            AppTile(app = app, iconSize = iconSizeDp, screenInfo = screenInfo)
-            AppMenu(
-                app = app,
-                visible = activeAppMenuIdentifier == app.id,
-                onDismissRequest = onAppMenuDismissed,
-                onAppDetails = onAppDetails,
-                onAppRemove = onAppRemoval,
-                onShortcutLaunch = onShortcutLaunch,
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 480)
+@Preview(showBackground = true, widthDp = 360, heightDp = 480, backgroundColor = 0xFF333333)
 @Composable
 private fun AppGridPagePreview() {
-    // Preview requires real App instances with Drawable icons.
-    // Shown here for structural verification — replace with stub Apps in IDE.
-    Column(modifier = Modifier.fillMaxSize()) {
-        repeat(4) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                repeat(4) { Box(modifier = Modifier
-                    .weight(1f)
-                    .height(Dp(80f))) }
-            }
-        }
+    val page = previewPage(apps = previewApps)
+    val pagerState = rememberPagerState { 1 }
+    val coroutineScope = rememberCoroutineScope()
+    AppTheme {
+        AppGridPage(
+            pageIndex = 0,
+            page = page,
+            columns = previewSpec.cols,
+            cellHeight = 120.dp,
+            iconSizeDp = ICON_SIZE,
+            spacing = MaterialTheme.spacing.medium,
+            draggingAppId = null,
+            activeAppMenuIdentifier = null,
+            pagerContainerCoordinates = null,
+            pagerState = pagerState,
+            coroutineScope = coroutineScope,
+            onDragStarted = {},
+            onDragMovedToCell = { _, _ -> },
+            onDragDropped = {},
+            onDragCancelled = {},
+            onAppTapped = {},
+            onAppMenuRequested = {},
+            onAppMenuDismissed = {},
+            onAppDetails = {},
+            onAppRemoval = {},
+            onShortcutLaunch = {},
+        )
     }
 }
 

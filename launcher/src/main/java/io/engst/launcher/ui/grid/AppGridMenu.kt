@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.GridSpec
+import io.engst.launcher.ui.shared.AppTheme
 import io.engst.launcher.ui.shared.DarkModePreference
 
 private const val MIN_GRID_SIZE = 3
@@ -222,19 +223,21 @@ private fun BarVisibilityToggle(
 @Preview(showBackground = true)
 @Composable
 private fun AppGridMenuPreview() {
-    AppGridMenu(
-        isVisible = true,
-        offset = DpOffset(0.dp, 0.dp),
-        isDefaultLauncher = false,
-        currentGridSpec = GridSpec(4, 4),
-        darkModePreference = DarkModePreference.SYSTEM,
-        isBarVisible = true,
-        onDismissRequest = {},
-        onAppsListRequested = {},
-        onSetDefaultLauncherRequested = {},
-        onResetDefaultsRequested = {},
-        onGridSpecSelected = {},
-        onDarkModeChanged = {},
-        onBarVisibilityChanged = {},
-    )
+    AppTheme {
+        AppGridMenu(
+            isVisible = true,
+            offset = DpOffset(0.dp, 0.dp),
+            isDefaultLauncher = false,
+            currentGridSpec = GridSpec(4, 4),
+            darkModePreference = DarkModePreference.SYSTEM,
+            isBarVisible = true,
+            onDismissRequest = {},
+            onAppsListRequested = {},
+            onSetDefaultLauncherRequested = {},
+            onResetDefaultsRequested = {},
+            onGridSpecSelected = {},
+            onDarkModeChanged = {},
+            onBarVisibilityChanged = {},
+        )
+    }
 }

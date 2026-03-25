@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.engst.launcher.model.App
+import io.engst.launcher.ui.shared.AppTheme
+import io.engst.launcher.ui.shared.previewApp
 
 @Composable
 fun AppMenu(
@@ -96,12 +98,15 @@ fun AppMenu(
 @Preview(showBackground = true)
 @Composable
 private fun AppMenuDismissedPreview() {
-   // Visible = false — shows nothing (correct collapsed state)
-   // Instantiating App requires system resources so we preview the container only.
+   AppTheme {
+      AppMenu(app = previewApp("chrome", "Chrome"), visible = false)
+   }
 }
 
 @Preview(showBackground = true)
 @Composable
 private fun AppMenuExpandedPreview() {
-   // Expanded state preview — requires a real App; shown for structural completeness.
+   AppTheme {
+      AppMenu(app = previewApp("chrome", "Chrome"), visible = true)
+   }
 }

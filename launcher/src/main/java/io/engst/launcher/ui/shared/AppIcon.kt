@@ -18,6 +18,5 @@ fun AppIcon(app: App, modifier: Modifier = Modifier, size: Dp) {
    Image(
       bitmap = app.icon.toBitmap(size, size).asImageBitmap(),
       contentDescription = app.label,
-      modifier = modifier.padding(3.dp),
    )
 }
