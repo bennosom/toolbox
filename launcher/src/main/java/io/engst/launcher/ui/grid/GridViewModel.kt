@@ -70,13 +70,13 @@ class GridViewModel(
             is GridIntent.AppDetailsRequested -> effectHandler.openAppDetails(intent.app)
             is GridIntent.AppRemovalRequested -> effectHandler.removeApp(intent.app)
             is GridIntent.ShortcutLaunchRequested -> effectHandler.launchShortcut(intent.shortcut)
-            is GridIntent.AppManagerOpenRequested -> {
-                _uiState.update { it.copy(isGridMenuVisible = false) }
-                effectHandler.openAppManager()
-            }
             is GridIntent.DefaultLauncherSettingsOpenRequested -> {
                 _uiState.update { it.copy(isGridMenuVisible = false) }
                 effectHandler.openDefaultLauncherSettings()
+            }
+            is GridIntent.WallpaperSettingsOpenRequested -> {
+                _uiState.update { it.copy(isGridMenuVisible = false) }
+                effectHandler.openWallpaperSettings()
             }
             is GridIntent.ResetDefaultsRequested -> {
                 logDebug { "reset defaults requested — showing undo snackbar" }

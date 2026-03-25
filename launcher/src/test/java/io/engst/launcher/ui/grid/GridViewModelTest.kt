@@ -382,21 +382,6 @@ class GridViewModelTest {
     }
 
     // ---------------------------------------------------------------------------
-    // AppManagerOpenRequested hides grid menu
-    // ---------------------------------------------------------------------------
-
-    @Test
-    fun AppManagerOpenRequested_hides_grid_menu() = runTest {
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onIntent(GridIntent.GridMenuRequested(DpOffset(0.dp, 0.dp)))
-        viewModel.onIntent(GridIntent.AppManagerOpenRequested)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(false, viewModel.uiState.value.isGridMenuVisible)
-    }
-
-    // ---------------------------------------------------------------------------
     // DefaultLauncherSettingsOpenRequested hides grid menu
     // ---------------------------------------------------------------------------
 
@@ -406,6 +391,17 @@ class GridViewModelTest {
 
         viewModel.onIntent(GridIntent.GridMenuRequested(DpOffset(0.dp, 0.dp)))
         viewModel.onIntent(GridIntent.DefaultLauncherSettingsOpenRequested)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(false, viewModel.uiState.value.isGridMenuVisible)
+    }
+
+    @Test
+    fun WallpaperSettingsOpenRequested_hides_grid_menu() = runTest {
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onIntent(GridIntent.GridMenuRequested(DpOffset(0.dp, 0.dp)))
+        viewModel.onIntent(GridIntent.WallpaperSettingsOpenRequested)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(false, viewModel.uiState.value.isGridMenuVisible)
@@ -524,8 +520,8 @@ class GridViewModelTest {
         override fun openAppDetails(app: App) { effects += "OpenAppDetails(${app.id})" }
         override fun removeApp(app: App) { effects += "RemoveApp(${app.id})" }
         override fun launchShortcut(shortcut: android.content.pm.ShortcutInfo) { effects += "LaunchShortcut" }
-        override fun openAppManager() { effects += "OpenAppManager" }
         override fun openDefaultLauncherSettings() { effects += "OpenDefaultLauncherSettings" }
+        override fun openWallpaperSettings() { effects += "OpenWallpaperSettings" }
         override fun showResetDefaultsSnackbar() { effects += "ShowResetDefaultsSnackbar" }
         override fun expandNotificationsPanel() { effects += "ExpandNotificationsPanel" }
         override fun openSearch() { effects += "OpenSearch" }

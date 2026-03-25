@@ -22,9 +22,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 private const val PULSE_DURATION_MS = 800
-private val INDICATOR_INSET = 6.dp
 private val INDICATOR_STROKE = 6.dp
-private val INDICATOR_CORNER_RADIUS = 14.dp
+private val INDICATOR_CORNER_RADIUS = 18.dp
 
 /**
  * White pulsing rounded square shown on a cell while a drag shadow hovers over it.
@@ -55,7 +54,6 @@ fun DropIndicator(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(INDICATOR_INSET)
                 .alpha(alpha)
                 .scale(scale)
                 .border(

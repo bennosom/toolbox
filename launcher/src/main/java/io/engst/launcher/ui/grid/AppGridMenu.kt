@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSizeIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
@@ -46,6 +47,7 @@ fun AppGridMenu(
     isBarVisible: Boolean,
     onDismissRequest: () -> Unit,
     onSetDefaultLauncherRequested: () -> Unit,
+    onWallpaperRequested: () -> Unit,
     onResetDefaultsRequested: () -> Unit,
     onGridSpecSelected: (GridSpec) -> Unit,
     onBarVisibilityChanged: (Boolean) -> Unit,
@@ -64,6 +66,11 @@ fun AppGridMenu(
                 onClick = { onSetDefaultLauncherRequested() },
             )
         }
+        DropdownMenuItem(
+            leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
+            text = { Text("Wallpaper") },
+            onClick = { onWallpaperRequested() },
+        )
         DropdownMenuItem(
             leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
             text = { Text("Reset defaults") },
@@ -183,6 +190,7 @@ private fun AppGridMenuPreview() {
             isBarVisible = true,
             onDismissRequest = {},
             onSetDefaultLauncherRequested = {},
+            onWallpaperRequested = {},
             onResetDefaultsRequested = {},
             onGridSpecSelected = {},
             onBarVisibilityChanged = {},

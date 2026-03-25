@@ -1,8 +1,6 @@
 package io.engst.launcher.ui.grid
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ShortcutInfo
 import io.engst.core.Logging
 import io.engst.core.apps.launchActivity
@@ -17,8 +15,8 @@ interface GridEffectHandler {
     fun openAppDetails(app: App)
     fun removeApp(app: App)
     fun launchShortcut(shortcut: ShortcutInfo)
-    fun openAppManager()
     fun openDefaultLauncherSettings()
+    fun openWallpaperSettings()
     fun showResetDefaultsSnackbar()
     fun expandNotificationsPanel()
     fun openSearch()
@@ -29,6 +27,7 @@ class GridEffectHandlerImpl(
 ) : GridEffectHandler, Logging by scopedLogger("GridEffectHandler") {
 
     var onSetDefaultLauncher: () -> Unit = {}
+    var onOpenWallpaperSettings: () -> Unit = {}
     var onShowResetDefaultsSnackbar: () -> Unit = {}
 
     override fun launchApp(app: App) {
@@ -47,15 +46,12 @@ class GridEffectHandlerImpl(
         context.launchShortcut(shortcut)
     }
 
-    override fun openAppManager() {
-        context.launchActivity(
-            component = ComponentName("io.engst.devicetool", "io.engst.devicetool.DeviceToolActivity"),
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK,
-        )
-    }
-
     override fun openDefaultLauncherSettings() {
         onSetDefaultLauncher()
+    }
+
+    override fun openWallpaperSettings() {
+        onOpenWallpaperSettings()
     }
 
     override fun showResetDefaultsSnackbar() {

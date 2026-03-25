@@ -12,5 +12,4 @@ Operations that may take more than ~300 ms must never silently block the user.
 **Affected operations (non-exhaustive):**
 - Grid spec change + layout migration (EPIC-005)
 - Wallpaper decode and apply (EPIC-005)
-- App list load in App Manager (EPIC-004)
 - Drag-and-drop state commit if it triggers a persistence flush (EPIC-002, EPIC-007)

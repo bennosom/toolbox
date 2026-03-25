@@ -244,6 +244,7 @@ private fun AppGridContent(
         onSetDefaultLauncherRequested = {
           onIntent(GridIntent.DefaultLauncherSettingsOpenRequested)
         },
+        onWallpaperRequested = { onIntent(GridIntent.WallpaperSettingsOpenRequested) },
         onResetDefaultsRequested = { onIntent(GridIntent.ResetDefaultsRequested) },
         onGridSpecSelected = { spec -> onIntent(GridIntent.GridSpecChangeRequested(spec)) },
         onBarVisibilityChanged = { visible -> onIntent(GridIntent.BarVisibilityChanged(visible)) },

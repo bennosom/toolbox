@@ -55,8 +55,8 @@ sealed interface GridIntent {
     data class AppDetailsRequested(val app: App) : GridIntent
     data class AppRemovalRequested(val app: App) : GridIntent
     data class ShortcutLaunchRequested(val shortcut: ShortcutInfo) : GridIntent
-    object AppManagerOpenRequested : GridIntent
     object DefaultLauncherSettingsOpenRequested : GridIntent
+    object WallpaperSettingsOpenRequested : GridIntent
     object ResetDefaultsRequested : GridIntent
     object ResetDefaultsConfirmed : GridIntent
     object ResetDefaultsUndone : GridIntent

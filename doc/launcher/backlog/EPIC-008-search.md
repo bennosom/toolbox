@@ -11,7 +11,7 @@ home screen.
 
 ## Goals
 
-- Give the user instant access to any installed app by name without navigating to the App Manager
+- Give the user instant access to any installed app by name without leaving the home screen
 - Keep the user on the home screen — results appear in place inside the grid, not a separate list
 - Provide prev/next navigation to step through matches when there are more than one
 - Dismiss with a downward swipe or back gesture, leaving the grid in its normal state
@@ -80,5 +80,4 @@ home screen.
 ## Related
 
 - EPIC-001 App Grid (gesture trigger; grid highlight rendering)
-- EPIC-004 App Manager (uses the same fuzzy-match logic for the list view)
 - NFR Performance & Responsiveness (search must filter on every keystroke without UI lag)

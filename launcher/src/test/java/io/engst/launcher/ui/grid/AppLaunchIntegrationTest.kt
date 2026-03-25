@@ -205,8 +205,8 @@ class AppLaunchIntegrationTest {
         override fun openAppDetails(app: App) {}
         override fun removeApp(app: App) {}
         override fun launchShortcut(shortcut: android.content.pm.ShortcutInfo) {}
-        override fun openAppManager() {}
         override fun openDefaultLauncherSettings() {}
+        override fun openWallpaperSettings() {}
         override fun showResetDefaultsSnackbar() {}
         override fun expandNotificationsPanel() {}
         override fun openSearch() {}
