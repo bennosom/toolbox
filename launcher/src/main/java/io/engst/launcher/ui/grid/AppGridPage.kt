@@ -32,6 +32,7 @@ import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
 import io.engst.launcher.ui.shared.localOffsetOf
@@ -192,6 +193,7 @@ private fun AppTileContainer(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .testTag("app_tile_${app.id}")
             .clip(MaterialTheme.shapes.small)
             .indication(interactionSource, ripple())
             .draggableAppSource(
@@ -216,7 +218,9 @@ private fun AppTileContainer(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        if (draggingAppId != app.id) {
+        if (draggingAppId == app.id) {
+            DropIndicator(modifier = Modifier.fillMaxSize())
+        } else {
             AppTile(app = app, iconSize = iconSizeDp, screenInfo = screenInfo)
             AppMenu(
                 app = app,

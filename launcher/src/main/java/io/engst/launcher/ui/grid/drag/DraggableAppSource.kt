@@ -114,8 +114,12 @@ internal sealed interface GestureResult {
  * [PointerEventPass.Main]. The additional distance check ensures the tile yields the gesture
  * *before* the pager starts scrolling, preventing a visible jump on the first drag frame.
  *
- * Long-press timing uses [withTimeoutOrNull] so it integrates with the coroutine dispatcher
- * clock, which the Compose test framework can advance via `mainClock.advanceTimeBy()`.
+ * Long-press timing uses [withTimeoutOrNull] so the timeout fires even when no new pointer
+ * events arrive (finger held still).
+ *
+ * Swipe detection relies solely on the distance check (finger moved past slop), not on
+ * [isConsumed], because a parent's `detectTapGestures(onLongPress)` also consumes at the
+ * long-press timeout, which would incorrectly shadow the child's own long-press detection.
  */
 internal suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.awaitLongPressOrSwipeOrTap(
     down: PointerInputChange,
@@ -132,7 +136,6 @@ internal suspend fun androidx.compose.ui.input.pointer.AwaitPointerEventScope.aw
             val change = event.changes.firstOrNull { it.id == down.id }
                 ?: return@withTimeoutOrNull GestureResult.Swipe
             lastChange = change
-            if (change.isConsumed) return@withTimeoutOrNull GestureResult.Swipe
             val distanceSq = (change.position - anchor).let { it.x * it.x + it.y * it.y }
             if (distanceSq > slopSquared) return@withTimeoutOrNull GestureResult.Swipe
             if (change.changedToUp()) {

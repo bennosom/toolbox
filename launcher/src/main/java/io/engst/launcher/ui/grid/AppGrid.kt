@@ -1,7 +1,8 @@
 package io.engst.launcher.ui.grid
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -24,12 +25,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -40,6 +43,8 @@ import io.engst.launcher.core.launchAppDetails
 import io.engst.launcher.core.launchAppRemovalRequest
 import io.engst.launcher.core.launchShortcut
 import io.engst.launcher.model.GridSpec
+import io.engst.launcher.ui.grid.drag.GestureResult
+import io.engst.launcher.ui.grid.drag.awaitLongPressOrSwipeOrTap
 import io.engst.launcher.ui.shared.LocalWallpaperState
 import io.engst.launcher.ui.shared.rememberScreenInfo
 import androidx.compose.ui.tooling.preview.Preview
@@ -99,15 +104,21 @@ fun AppGrid(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .testTag("app_grid")
             .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = { position ->
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
+                    val result = awaitLongPressOrSwipeOrTap(
+                        down, viewConfiguration, PointerEventPass.Final,
+                    )
+                    if (result is GestureResult.LongPress) {
                         if (state.draggingAppId == null) {
+                            val position = down.position
                             val offset = with(density) { DpOffset(position.x.toDp(), position.y.toDp()) }
                             viewModel.onIntent(GridIntent.GridMenuRequested(offset))
                         }
-                    },
-                )
+                    }
+                }
             }
             .homeScreenSwipeGestures(
                 onSwipeDown = { viewModel.onIntent(GridIntent.SwipeDownDetected) },
