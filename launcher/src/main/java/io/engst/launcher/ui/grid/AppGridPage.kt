@@ -9,38 +9,40 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ripple
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.ViewConfiguration
-import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
-import io.engst.launcher.ui.shared.localOffsetOf
+import androidx.compose.ui.platform.ViewConfiguration
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.toSize
 import io.engst.launcher.model.App
 import io.engst.launcher.model.Cell
 import io.engst.launcher.ui.grid.drag.draggableAppSource
 import io.engst.launcher.ui.shared.ScreenInfo
+import io.engst.launcher.ui.shared.localOffsetOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -72,16 +74,19 @@ fun AppGridPage(
     onAppRemoval: (App) -> Unit,
     onShortcutLaunch: (ShortcutInfo) -> Unit,
 ) {
-    val cellOrder = remember(page) { page.keys.toList() }
-    val lazyGridState = remember(pageIndex) { LazyGridState() }
     val gridCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val cellBounds = remember { mutableStateMapOf<Cell, Rect>() }
+
+    val rows = remember(page, columns) {
+        page.entries.chunked(columns)
+    }
 
     val dragTarget = remember(pageIndex) {
         object : DragAndDropTarget {
             override fun onMoved(event: DragAndDropEvent) {
                 val coordinates = gridCoordinates.value ?: return
                 val localOffset = coordinates.localOffsetOf(event) ?: return
-                val targetCell = lazyGridState.findCellAt(localOffset, cellOrder) ?: return
+                val targetCell = findCellAt(localOffset, cellBounds) ?: return
                 onDragMovedToCell(pageIndex, targetCell)
 
                 val pagerCoords = pagerContainerCoordinates ?: return
@@ -109,12 +114,8 @@ fun AppGridPage(
         }
     }
 
-    LazyVerticalGrid(
-        state = lazyGridState,
-        columns = GridCells.Fixed(columns),
-        userScrollEnabled = false,
+    Column(
         verticalArrangement = Arrangement.spacedBy(spacing),
-        horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = spacing)
@@ -124,39 +125,52 @@ fun AppGridPage(
                 target = dragTarget,
             ),
     ) {
-        page.forEach { (cell, app) ->
-            item("page$pageIndex-col${cell.col}-row${cell.row}") {
-                if (app == null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(cellHeight)
-                            .clip(MaterialTheme.shapes.small)
-                            .animateItem(),
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(cellHeight)
-                            .animateItem(),
-                    ) {
-                        AppTileContainer(
-                            app = app,
-                            iconSizeDp = iconSizeDp,
-                            draggingAppId = draggingAppId,
-                            activeAppMenuIdentifier = activeAppMenuIdentifier,
-                            density = density,
-                            viewConfiguration = viewConfiguration,
-                            screenInfo = screenInfo,
-                            onDragStarted = onDragStarted,
-                            onAppTapped = onAppTapped,
-                            onAppMenuRequested = onAppMenuRequested,
-                            onAppMenuDismissed = onAppMenuDismissed,
-                            onAppDetails = onAppDetails,
-                            onAppRemoval = onAppRemoval,
-                            onShortcutLaunch = onShortcutLaunch,
+        rows.forEach { rowEntries ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(spacing, Alignment.CenterHorizontally),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                rowEntries.forEach { (cell, app) ->
+                    if (app == null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(cellHeight)
+                                .clip(MaterialTheme.shapes.small)
+                                .onPlaced { coords ->
+                                    val gridCoords = gridCoordinates.value ?: return@onPlaced
+                                    val topLeft = gridCoords.localPositionOf(coords, Offset.Zero)
+                                    cellBounds[cell] = Rect(topLeft, coords.size.toSize())
+                                },
                         )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(cellHeight)
+                                .onPlaced { coords ->
+                                    val gridCoords = gridCoordinates.value ?: return@onPlaced
+                                    val topLeft = gridCoords.localPositionOf(coords, Offset.Zero)
+                                    cellBounds[cell] = Rect(topLeft, coords.size.toSize())
+                                },
+                        ) {
+                            AppTileContainer(
+                                app = app,
+                                iconSizeDp = iconSizeDp,
+                                draggingAppId = draggingAppId,
+                                activeAppMenuIdentifier = activeAppMenuIdentifier,
+                                density = density,
+                                viewConfiguration = viewConfiguration,
+                                screenInfo = screenInfo,
+                                onDragStarted = onDragStarted,
+                                onAppTapped = onAppTapped,
+                                onAppMenuRequested = onAppMenuRequested,
+                                onAppMenuDismissed = onAppMenuDismissed,
+                                onAppDetails = onAppDetails,
+                                onAppRemoval = onAppRemoval,
+                                onShortcutLaunch = onShortcutLaunch,
+                            )
+                        }
                     }
                 }
             }
@@ -225,21 +239,17 @@ private fun AppTileContainer(
 private fun AppGridPagePreview() {
     // Preview requires real App instances with Drawable icons.
     // Shown here for structural verification — replace with stub Apps in IDE.
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(4),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // Empty 4×4 grid placeholder for preview
+    Column(modifier = Modifier.fillMaxSize()) {
+        repeat(4) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                repeat(4) { Box(modifier = Modifier
+                    .weight(1f)
+                    .height(Dp(80f))) }
+            }
+        }
     }
 }
 
-private fun LazyGridState.findCellAt(localOffset: Offset, cells: List<Cell>): Cell? {
-    val x = localOffset.x.toInt()
-    val y = localOffset.y.toInt()
-    if (x < 0 || y < 0) return null
-    val itemInfo = layoutInfo.visibleItemsInfo.firstOrNull { info ->
-        x in info.offset.x until (info.offset.x + info.size.width) &&
-            y in info.offset.y until (info.offset.y + info.size.height)
-    } ?: return null
-    return cells.getOrNull(itemInfo.index)
+private fun findCellAt(localOffset: Offset, cellBounds: Map<Cell, Rect>): Cell? {
+    return cellBounds.entries.firstOrNull { (_, rect) -> rect.contains(localOffset) }?.key
 }

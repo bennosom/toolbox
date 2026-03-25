@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import io.engst.core.scopedLogger
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -50,6 +51,7 @@ import io.engst.launcher.ui.shared.rememberScreenInfo
 import androidx.compose.ui.tooling.preview.Preview
 import org.koin.androidx.compose.koinViewModel
 
+private val logger = scopedLogger("AppGrid")
 private val ICON_SIZE_DP = 60.dp
 private val SPACING_DP = 12.dp
 
@@ -100,6 +102,7 @@ fun AppGrid(
     val spacingPx = with(density) { SPACING_DP.roundToPx() }
     val pagerState = rememberPagerState { displayGrid.grid.size }
     val pagerContainerCoordinates = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    val gestureClaimedByTile = remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -107,14 +110,18 @@ fun AppGrid(
             .testTag("app_grid")
             .pointerInput(Unit) {
                 awaitEachGesture {
+                    gestureClaimedByTile.value = false
                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Final)
                     val result = awaitLongPressOrSwipeOrTap(
                         down, viewConfiguration, PointerEventPass.Final,
                     )
                     if (result is GestureResult.LongPress) {
-                        if (state.draggingAppId == null) {
+                        if (gestureClaimedByTile.value) {
+                            logger.logDebug { "long press on background ignored — tile claimed gesture" }
+                        } else if (state.draggingAppId == null) {
                             val position = down.position
                             val offset = with(density) { DpOffset(position.x.toDp(), position.y.toDp()) }
+                            logger.logDebug { "long press on empty space — opening grid menu" }
                             viewModel.onIntent(GridIntent.GridMenuRequested(offset))
                         }
                     }
@@ -174,12 +181,21 @@ fun AppGrid(
                             pagerContainerCoordinates = pagerContainerCoordinates.value,
                             pagerState = pagerState,
                             coroutineScope = coroutineScope,
-                            onDragStarted = { appId -> viewModel.onIntent(GridIntent.DragStarted(appId)) },
+                            onDragStarted = { appId ->
+                                gestureClaimedByTile.value = true
+                                viewModel.onIntent(GridIntent.DragStarted(appId))
+                            },
                             onDragMovedToCell = { page, cell -> viewModel.onIntent(GridIntent.DragMovedToGridCell(page, cell)) },
                             onDragDropped = { viewModel.onIntent(GridIntent.DragDropped) },
                             onDragCancelled = { viewModel.onIntent(GridIntent.DragCancelled) },
-                            onAppTapped = { app -> viewModel.onIntent(GridIntent.AppTapped(app)) },
-                            onAppMenuRequested = { appId -> viewModel.onIntent(GridIntent.AppMenuRequested(appId)) },
+                            onAppTapped = { app ->
+                                gestureClaimedByTile.value = true
+                                viewModel.onIntent(GridIntent.AppTapped(app))
+                            },
+                            onAppMenuRequested = { appId ->
+                                gestureClaimedByTile.value = true
+                                viewModel.onIntent(GridIntent.AppMenuRequested(appId))
+                            },
                             onAppMenuDismissed = { viewModel.onIntent(GridIntent.AppMenuDismissed) },
                             onAppDetails = { app -> viewModel.onIntent(GridIntent.AppDetailsRequested(app)) },
                             onAppRemoval = { app -> viewModel.onIntent(GridIntent.AppRemovalRequested(app)) },
@@ -207,12 +223,21 @@ fun AppGrid(
                         activeAppMenuIdentifier = state.activeAppMenuIdentifier,
                         density = density,
                         viewConfiguration = viewConfiguration,
-                        onDragStarted = { appId -> viewModel.onIntent(GridIntent.DragStarted(appId)) },
+                        onDragStarted = { appId ->
+                            gestureClaimedByTile.value = true
+                            viewModel.onIntent(GridIntent.DragStarted(appId))
+                        },
                         onDragMovedToSlot = { index -> viewModel.onIntent(GridIntent.DragMovedToQuickBarSlot(index)) },
                         onDragDropped = { viewModel.onIntent(GridIntent.DragDropped) },
                         onDragCancelled = { viewModel.onIntent(GridIntent.DragCancelled) },
-                        onAppTapped = { app -> viewModel.onIntent(GridIntent.AppTapped(app)) },
-                        onAppMenuRequested = { appId -> viewModel.onIntent(GridIntent.AppMenuRequested(appId)) },
+                        onAppTapped = { app ->
+                            gestureClaimedByTile.value = true
+                            viewModel.onIntent(GridIntent.AppTapped(app))
+                        },
+                        onAppMenuRequested = { appId ->
+                            gestureClaimedByTile.value = true
+                            viewModel.onIntent(GridIntent.AppMenuRequested(appId))
+                        },
                         onAppMenuDismissed = { viewModel.onIntent(GridIntent.AppMenuDismissed) },
                         onAppDetails = { app -> viewModel.onIntent(GridIntent.AppDetailsRequested(app)) },
                         onAppRemoval = { app -> viewModel.onIntent(GridIntent.AppRemovalRequested(app)) },

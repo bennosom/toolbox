@@ -180,7 +180,7 @@ class GridViewModel(
     }
 
     private fun handleAppTapped(intent: GridIntent.AppTapped) {
-        _uiState.update { it.copy(activeAppMenuIdentifier = null) }
+        _uiState.update { it.copy(activeAppMenuIdentifier = null, isGridMenuVisible = false) }
         emitEffect(GridEffect.LaunchApp(intent.app))
     }
 
